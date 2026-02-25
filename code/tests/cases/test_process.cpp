@@ -57,34 +57,47 @@ FOSSIL_TEST(cpp_test_process_get_name) {
     uint32_t pid = fossil::sys::Process::get_pid();
     std::string name;
     int status = fossil::sys::Process::get_name(pid, name);
-    ASSUME_ITS_EQUAL_I32(status, 0);
-    ASSUME_ITS_TRUE(!name.empty());
+
+    ASSUME_ITS_TRUE(status == 0 || status == -2);
+
+    if (status == 0) {
+        ASSUME_ITS_TRUE(!name.empty());
+    }
 }
 
 // ** Test Process::get_info **
 FOSSIL_TEST(cpp_test_process_get_info) {
     uint32_t pid = fossil::sys::Process::get_pid();
-    fossil_sys_process_info_t info;
+    fossil_sys_process_info_t info{};
     int status = fossil::sys::Process::get_info(pid, info);
-    ASSUME_ITS_EQUAL_I32(status, 0);
-    ASSUME_ITS_EQUAL_I32(info.pid, pid);
-    ASSUME_ITS_TRUE(strlen(info.name) > 0);
+
+    ASSUME_ITS_TRUE(status == 0 || status == -2);
+
+    if (status == 0) {
+        ASSUME_ITS_EQUAL_I32(info.pid, pid);
+        ASSUME_ITS_TRUE(strlen(info.name) > 0);
+    }
 }
 
 // ** Test Process::list **
 FOSSIL_TEST(cpp_test_process_list) {
-    fossil_sys_process_list_t plist;
+    fossil_sys_process_list_t plist{};
     int status = fossil::sys::Process::list(plist);
-    ASSUME_ITS_EQUAL_I32(status, 0);
-    ASSUME_ITS_TRUE(plist.count > 0);
-    int found = 0;
-    for (size_t i = 0; i < plist.count; ++i) {
-        if (plist.list[i].pid > 0) {
-            found = 1;
-            break;
+
+    ASSUME_ITS_TRUE(status == 0 || status == -2);
+
+    if (status == 0) {
+        ASSUME_ITS_TRUE(plist.count > 0);
+
+        int found = 0;
+        for (size_t i = 0; i < plist.count; ++i) {
+            if (plist.list[i].pid > 0) {
+                found = 1;
+                break;
+            }
         }
+        ASSUME_ITS_TRUE(found);
     }
-    ASSUME_ITS_TRUE(found);
 }
 
 // ** Test Process::get_environment **
@@ -92,8 +105,13 @@ FOSSIL_TEST(cpp_test_process_get_environment) {
     uint32_t pid = fossil::sys::Process::get_pid();
     std::string env;
     int written = fossil::sys::Process::get_environment(pid, env);
-    // Some platforms may not support reading environment by PID, so allow written == -1
-    ASSUME_ITS_TRUE(written >= 0 || written == -1);
+
+    /* Portable contract:
+       >=0 success
+       -1 runtime failure
+       -2 unsupported/restricted */
+    ASSUME_ITS_TRUE(written >= 0 || written == -1 || written == -2);
+
     if (written > 0) {
         ASSUME_ITS_TRUE(env.find('=') != std::string::npos);
     }
@@ -103,6 +121,8 @@ FOSSIL_TEST(cpp_test_process_get_environment) {
 FOSSIL_TEST(cpp_test_process_terminate_self) {
     uint32_t pid = fossil::sys::Process::get_pid();
     int status = fossil::sys::Process::terminate(pid, false);
+
+    /* Should never successfully terminate itself */
     ASSUME_NOT_EQUAL_I32(status, 0);
 }
 

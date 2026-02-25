@@ -26,11 +26,13 @@
 #define FOSSIL_SYS_FRAMEWORK_H
 
 #include "cnullptr.h"
+#include "dynamic.h"
 #include "hostinfo.h"
 #include "syscall.h"
 #include "bitwise.h"
 #include "process.h"
 #include "memory.h"
-#include "types.h"
+#include "event.h"
+#include "os.h"
 
 #endif /* FOSSIL_SYS_FRAMEWORK_H */

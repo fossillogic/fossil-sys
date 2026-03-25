@@ -368,11 +368,8 @@ int fossil_sys_process_list(fossil_sys_process_list_t *plist)
             memset(info, 0, sizeof(*info));
             info->pid = pe.th32ProcessID;
             info->ppid = pe.th32ParentProcessID;
-            strncpy(info->name, pe.szExeFile, sizeof(info->name) - 1);
+            snprintf(info->name, sizeof(info->name), "%s", pe.szExeFile);
             info->name[sizeof(info->name) - 1] = '\0';
-            /* Ensure null-termination if source is too long */
-            if (strlen(pe.szExeFile) >= sizeof(info->name))
-                info->name[sizeof(info->name) - 1] = '\0';
         } while (Process32Next(snap, &pe));
     }
     CloseHandle(snap);

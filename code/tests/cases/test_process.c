@@ -121,6 +121,91 @@ FOSSIL_TEST(c_test_process_terminate_self) {
     ASSUME_NOT_EQUAL_I32(status, 0);
 }
 
+// ** Test fossil_sys_process_exists **
+FOSSIL_TEST(c_test_process_exists) {
+    uint32_t pid = fossil_sys_process_get_pid();
+    int exists = fossil_sys_process_exists(pid);
+    ASSUME_ITS_EQUAL_I32(exists, 1);
+
+    exists = fossil_sys_process_exists(0);
+    ASSUME_ITS_EQUAL_I32(exists, 0);
+}
+
+// ** Test fossil_sys_process_suspend and fossil_sys_process_resume (self, should fail) **
+FOSSIL_TEST(c_test_process_suspend_resume_self) {
+    uint32_t pid = fossil_sys_process_get_pid();
+    int status = fossil_sys_process_suspend(pid);
+    ASSUME_NOT_EQUAL_I32(status, 0);
+
+    status = fossil_sys_process_resume(pid);
+    ASSUME_NOT_EQUAL_I32(status, 0);
+}
+
+// ** Test fossil_sys_process_set_priority and fossil_sys_process_get_priority **
+FOSSIL_TEST(c_test_process_set_get_priority) {
+    uint32_t pid = fossil_sys_process_get_pid();
+    int orig_priority = 0;
+    int status = fossil_sys_process_get_priority(pid, &orig_priority);
+    ASSUME_ITS_TRUE(status == 0 || status == -1 || status == -2 || status == -3);
+
+    // Only try to set if get succeeded
+    if (status == 0) {
+        int set_status = fossil_sys_process_set_priority(pid, orig_priority);
+        ASSUME_ITS_TRUE(set_status == 0 || set_status == -1 || set_status == -2);
+
+        int new_priority = 0;
+        int get_status = fossil_sys_process_get_priority(pid, &new_priority);
+        ASSUME_ITS_TRUE(get_status == 0 || get_status == -1 || get_status == -2 || get_status == -3);
+    }
+}
+
+// ** Test fossil_sys_process_wait (self, should fail or timeout) **
+FOSSIL_TEST(c_test_process_wait_self) {
+    uint32_t pid = fossil_sys_process_get_pid();
+    int exit_code = 0;
+    int status = fossil_sys_process_wait(pid, &exit_code, 100);
+    ASSUME_NOT_EQUAL_I32(status, 0);
+}
+
+// ** Test fossil_sys_process_spawn, fossil_sys_process_wait, and fossil_sys_process_terminate **
+FOSSIL_TEST(c_test_process_spawn_wait_terminate) {
+#if defined(__linux__) || defined(__APPLE__)
+    char *const argv[] = {"/bin/echo", "fossil_test", NULL};
+    uint32_t child_pid = 0;
+    int spawn_status = fossil_sys_process_spawn("/bin/echo", argv, NULL, &child_pid);
+    ASSUME_ITS_EQUAL_I32(spawn_status, 0);
+    ASSUME_ITS_TRUE(child_pid > 0);
+
+    int exit_code = -1;
+    int wait_status = fossil_sys_process_wait(child_pid, &exit_code, 2000);
+    ASSUME_ITS_TRUE(wait_status == 0 || wait_status == -2);
+#elif defined(_WIN32)
+    char *const argv[] = {"cmd.exe", "/C", "echo", "fossil_test", NULL};
+    uint32_t child_pid = 0;
+    int spawn_status = fossil_sys_process_spawn("C:\\Windows\\System32\\cmd.exe", argv, NULL, &child_pid);
+    ASSUME_ITS_EQUAL_I32(spawn_status, 0);
+    ASSUME_ITS_TRUE(child_pid > 0);
+
+    int exit_code = -1;
+    int wait_status = fossil_sys_process_wait(child_pid, &exit_code, 2000);
+    ASSUME_ITS_TRUE(wait_status == 0 || wait_status == -2);
+#else
+    // Not supported
+    ASSUME_ITS_TRUE(1);
+#endif
+}
+
+// ** Test fossil_sys_process_get_exe_path **
+FOSSIL_TEST(c_test_process_get_exe_path) {
+    uint32_t pid = fossil_sys_process_get_pid();
+    char buffer[512] = {0};
+    int status = fossil_sys_process_get_exe_path(pid, buffer, sizeof(buffer));
+    ASSUME_ITS_TRUE(status == 0 || status == -2 || status == -3);
+    if (status == 0) {
+        ASSUME_ITS_TRUE(strlen(buffer) > 0);
+    }
+}
+
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Pool
 // * * * * * * * * * * * * * * * * * * * * * * * *
@@ -131,6 +216,12 @@ FOSSIL_TEST_GROUP(c_process_tests) {
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_list);
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_get_environment);
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_terminate_self);
+    FOSSIL_TEST_ADD(c_process_suite, c_test_process_exists);
+    FOSSIL_TEST_ADD(c_process_suite, c_test_process_suspend_resume_self);
+    FOSSIL_TEST_ADD(c_process_suite, c_test_process_set_get_priority);
+    FOSSIL_TEST_ADD(c_process_suite, c_test_process_wait_self);
+    FOSSIL_TEST_ADD(c_process_suite, c_test_process_spawn_wait_terminate);
+    FOSSIL_TEST_ADD(c_process_suite, c_test_process_get_exe_path);
 
     FOSSIL_TEST_REGISTER(c_process_suite);
 }

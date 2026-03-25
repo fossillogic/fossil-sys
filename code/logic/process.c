@@ -323,40 +323,6 @@ int fossil_sys_process_get_ppid(uint32_t pid)
     return ppid;
 }
 
-int fossil_sys_process_get_cmdline(uint32_t pid, char *buffer, size_t buf_len)
-{
-    if (!buffer || buf_len == 0)
-        return -1;
-    char path[256];
-    snprintf(path, sizeof(path), "/proc/%u/cmdline", pid);
-    FILE *fp = fopen(path, "r");
-    if (!fp)
-        return -2;
-    size_t total_read = fread(buffer, 1, buf_len - 1, fp);
-    fclose(fp);
-    if (total_read == 0)
-        return -3;
-    // Replace '\0' with spaces except the last one
-    for (size_t i = 0; i < total_read - 1; ++i)
-        if (buffer[i] == '\0')
-            buffer[i] = ' ';
-    buffer[total_read] = '\0';
-    return 0;
-}
-
-int fossil_sys_process_get_cwd(uint32_t pid, char *buffer, size_t buf_len)
-{
-    if (!buffer || buf_len == 0)
-        return -1;
-    char path[256];
-    snprintf(path, sizeof(path), "/proc/%u/cwd", pid);
-    ssize_t len = readlink(path, buffer, buf_len - 1);
-    if (len < 0)
-        return -2;
-    buffer[len] = '\0';
-    return 0;
-}
-
 int fossil_sys_process_send_signal(uint32_t pid, int signal)
 {
     if (kill(pid, signal) == 0)
@@ -733,93 +699,6 @@ int fossil_sys_process_get_ppid(uint32_t pid)
     return ppid;
 }
 
-typedef NTSTATUS (NTAPI *NtQueryInformationProcess_t)(
-    HANDLE, PROCESSINFOCLASS, PVOID, ULONG, PULONG
-);
-
-int fossil_sys_process_get_cmdline(uint32_t pid, char *buffer, size_t buf_len)
-{
-    if (!buffer || buf_len == 0)
-        return -1;
-
-    HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
-    if (!hProc)
-        return -2;
-
-    int ret = -3;
-
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-    if (!ntdll) {
-        CloseHandle(hProc);
-        return -4;
-    }
-
-    NtQueryInformationProcess_t NtQueryInformationProcess =
-        (NtQueryInformationProcess_t)GetProcAddress(ntdll, "NtQueryInformationProcess");
-
-    if (!NtQueryInformationProcess) {
-        CloseHandle(hProc);
-        return -5;
-    }
-
-    PROCESS_BASIC_INFORMATION pbi;
-    if (NtQueryInformationProcess(hProc, ProcessBasicInformation, &pbi, sizeof(pbi), NULL) != 0) {
-        CloseHandle(hProc);
-        return -6;
-    }
-
-    // Read PEB
-    PEB peb;
-    if (!ReadProcessMemory(hProc, pbi.PebBaseAddress, &peb, sizeof(peb), NULL)) {
-        CloseHandle(hProc);
-        return -7;
-    }
-
-    // Read RTL_USER_PROCESS_PARAMETERS
-    RTL_USER_PROCESS_PARAMETERS params;
-    if (!ReadProcessMemory(hProc, peb.ProcessParameters, &params, sizeof(params), NULL)) {
-        CloseHandle(hProc);
-        return -8;
-    }
-
-    // Read command line string
-    WCHAR *wcmd = malloc(params.CommandLine.Length + sizeof(WCHAR));
-    if (!wcmd) {
-        CloseHandle(hProc);
-        return -9;
-    }
-
-    if (!ReadProcessMemory(hProc, params.CommandLine.Buffer, wcmd,
-                           params.CommandLine.Length, NULL)) {
-        free(wcmd);
-        CloseHandle(hProc);
-        return -10;
-    }
-
-    wcmd[params.CommandLine.Length / sizeof(WCHAR)] = L'\0';
-
-    int len = WideCharToMultiByte(CP_UTF8, 0, wcmd, -1,
-                                 buffer, (int)buf_len, NULL, NULL);
-
-    free(wcmd);
-
-    if (len > 0)
-        ret = 0;
-
-    CloseHandle(hProc);
-    return ret;
-}
-
-int fossil_sys_process_get_cwd(uint32_t pid, char *buffer, size_t buf_len)
-{
-    // Not trivial on Windows, requires reading remote process memory.
-    // Not implemented here.
-    (void)pid;
-    (void)buffer;
-    (void)buf_len;
-    return -1;
-}
-
 int fossil_sys_process_send_signal(uint32_t pid, int signal)
 {
     // Windows does not support POSIX signals.
@@ -929,22 +808,6 @@ int fossil_sys_process_get_exe_path(uint32_t pid, char *buffer, size_t buf_len)
 int fossil_sys_process_get_ppid(uint32_t pid)
 {
     (void)pid;
-    return -1;
-}
-
-int fossil_sys_process_get_cmdline(uint32_t pid, char *buffer, size_t buf_len)
-{
-    (void)pid;
-    (void)buffer;
-    (void)buf_len;
-    return -1;
-}
-
-int fossil_sys_process_get_cwd(uint32_t pid, char *buffer, size_t buf_len)
-{
-    (void)pid;
-    (void)buffer;
-    (void)buf_len;
     return -1;
 }
 

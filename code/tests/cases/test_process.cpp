@@ -14,9 +14,6 @@
 #include <fossil/pizza/framework.h>
 
 #include "fossil/sys/framework.h"
-extern "C" {
-#include "fossil/sys/process.h"
-}
 
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Utilities

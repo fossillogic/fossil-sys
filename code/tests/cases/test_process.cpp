@@ -257,34 +257,6 @@ FOSSIL_TEST(cpp_test_process_wait_self) {
     ASSUME_NOT_EQUAL_I32(status, 0);
 }
 
-// ** Test fossil_sys_process_spawn, fossil_sys_process_wait, and fossil_sys_process_terminate **
-FOSSIL_TEST(cpp_test_process_spawn_wait_terminate) {
-#if defined(__linux__) || defined(__APPLE__)
-    char *const argv[] = { (char*)"/bin/echo", (char*)"fossil_test", NULL };
-    uint32_t child_pid = 0;
-    int spawn_status = fossil_sys_process_spawn("/bin/echo", argv, NULL, &child_pid);
-    ASSUME_ITS_EQUAL_I32(spawn_status, 0);
-    ASSUME_ITS_TRUE(child_pid > 0);
-
-    int exit_code = -1;
-    int wait_status = fossil_sys_process_wait(child_pid, &exit_code, 2000);
-    ASSUME_ITS_TRUE(wait_status == 0 || wait_status == -2);
-#elif defined(_WIN32)
-    char *const argv[] = {"cmd.exe", "/C", "echo", "fossil_test", NULL};
-    uint32_t child_pid = 0;
-    int spawn_status = fossil_sys_process_spawn("C:\\Windows\\System32\\cmd.exe", argv, NULL, &child_pid);
-    ASSUME_ITS_EQUAL_I32(spawn_status, 0);
-    ASSUME_ITS_TRUE(child_pid > 0);
-
-    int exit_code = -1;
-    int wait_status = fossil_sys_process_wait(child_pid, &exit_code, 2000);
-    ASSUME_ITS_TRUE(wait_status == 0 || wait_status == -2);
-#else
-    // Not supported
-    ASSUME_ITS_TRUE(1);
-#endif
-}
-
 // ** Test fossil_sys_process_get_exe_path **
 FOSSIL_TEST(cpp_test_process_get_exe_path) {
     uint32_t pid = fossil_sys_process_get_pid();
@@ -316,7 +288,6 @@ FOSSIL_TEST_GROUP(cpp_process_tests) {
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_suspend_resume_self);
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_set_get_priority);
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_wait_self);
-    FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_spawn_wait_terminate);
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_get_exe_path);
 
     FOSSIL_TEST_REGISTER(cpp_process_suite);

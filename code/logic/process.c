@@ -348,6 +348,24 @@ int fossil_sys_process_get_info(uint32_t pid, fossil_sys_process_info_t *info)
     return 0;
 }
 
+static inline void fossil_strlcpy(char *dst, size_t size, const char *src)
+{
+    if (!dst || size == 0)
+        return;
+
+    if (!src) {
+        dst[0] = '\0';
+        return;
+    }
+
+    size_t len = strlen(src);
+    if (len >= size)
+        len = size - 1;
+
+    memcpy(dst, src, len);
+    dst[len] = '\0';
+}
+
 int fossil_sys_process_list(fossil_sys_process_list_t *plist)
 {
     if (!plist)
@@ -368,8 +386,7 @@ int fossil_sys_process_list(fossil_sys_process_list_t *plist)
             memset(info, 0, sizeof(*info));
             info->pid = pe.th32ProcessID;
             info->ppid = pe.th32ParentProcessID;
-            snprintf(info->name, sizeof(info->name), "%s", pe.szExeFile);
-            info->name[sizeof(info->name) - 1] = '\0';
+            fossil_strlcpy(info->name, sizeof(info->name), pe.szExeFile);
         } while (Process32Next(snap, &pe));
     }
     CloseHandle(snap);

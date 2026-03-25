@@ -177,26 +177,6 @@ int fossil_sys_process_get_exe_path(uint32_t pid, char *buffer, size_t buf_len);
 int fossil_sys_process_get_ppid(uint32_t pid);
 
 /**
- * Get the command line of a process.
- *
- * @param pid Process ID
- * @param buffer Buffer to store the command line
- * @param buf_len Length of buffer
- * @return 0 on success, negative error code on failure
- */
-int fossil_sys_process_get_cmdline(uint32_t pid, char *buffer, size_t buf_len);
-
-/**
- * Get the current working directory of a process.
- *
- * @param pid Process ID
- * @param buffer Buffer to store the directory path
- * @param buf_len Length of buffer
- * @return 0 on success, negative error code on failure
- */
-int fossil_sys_process_get_cwd(uint32_t pid, char *buffer, size_t buf_len);
-
-/**
  * Send a signal to a process.
  *
  * @param pid Process ID
@@ -410,42 +390,6 @@ namespace fossil::sys
         static int get_ppid(uint32_t pid)
         {
             return fossil_sys_process_get_ppid(pid);
-        }
-
-        /**
-         * @brief Gets the command line of a process.
-         *
-         * @param pid The process ID.
-         * @param cmdline Reference to a std::string to store the command line.
-         * @return int 0 on success, negative error code on failure.
-         */
-        static int get_cmdline(uint32_t pid, std::string &cmdline)
-        {
-            char buf[FOSSIL_SYS_PROCESS_ENV_MAX] = {0};
-            int ret = fossil_sys_process_get_cmdline(pid, buf, sizeof(buf));
-            if (ret == 0)
-            {
-                cmdline = buf;
-            }
-            return ret;
-        }
-
-        /**
-         * @brief Gets the current working directory of a process.
-         *
-         * @param pid The process ID.
-         * @param cwd Reference to a std::string to store the directory path.
-         * @return int 0 on success, negative error code on failure.
-         */
-        static int get_cwd(uint32_t pid, std::string &cwd)
-        {
-            char buf[FOSSIL_SYS_PROCESS_ENV_MAX] = {0};
-            int ret = fossil_sys_process_get_cwd(pid, buf, sizeof(buf));
-            if (ret == 0)
-            {
-                cwd = buf;
-            }
-            return ret;
         }
 
         /**

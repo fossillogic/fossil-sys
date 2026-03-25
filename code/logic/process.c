@@ -369,6 +369,7 @@ int fossil_sys_process_list(fossil_sys_process_list_t *plist)
             info->pid = pe.th32ProcessID;
             info->ppid = pe.th32ParentProcessID;
             strncpy(info->name, pe.szExeFile, sizeof(info->name) - 1);
+            info->name[sizeof(info->name) - 1] = '\0';
         } while (Process32Next(snap, &pe));
     }
     CloseHandle(snap);
@@ -510,7 +511,9 @@ int fossil_sys_process_suspend(uint32_t pid)
     if (!h)
         return -1;
     typedef LONG(WINAPI * PFN_NtSuspendProcess)(HANDLE);
-    PFN_NtSuspendProcess NtSuspendProcess = (PFN_NtSuspendProcess)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtSuspendProcess");
+    union { FARPROC fp; PFN_NtSuspendProcess fn; } u;
+    u.fp = GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtSuspendProcess");
+    PFN_NtSuspendProcess NtSuspendProcess = u.fn;
     if (!NtSuspendProcess)
     {
         CloseHandle(h);
@@ -527,7 +530,9 @@ int fossil_sys_process_resume(uint32_t pid)
     if (!h)
         return -1;
     typedef LONG(WINAPI * PFN_NtResumeProcess)(HANDLE);
-    PFN_NtResumeProcess NtResumeProcess = (PFN_NtResumeProcess)GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtResumeProcess");
+    union { FARPROC fp; PFN_NtResumeProcess fn; } u;
+    u.fp = GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtResumeProcess");
+    PFN_NtResumeProcess NtResumeProcess = u.fn;
     if (!NtResumeProcess)
     {
         CloseHandle(h);
@@ -609,7 +614,7 @@ int fossil_sys_process_spawn(const char *path, char *const argv[], char *const e
 
     BOOL ok = CreateProcessA(
         path, cmdline[0] ? cmdline : NULL, NULL, NULL, FALSE, 0,
-        envp, NULL, &si, &pi);
+        (LPVOID)envp, NULL, &si, &pi);
     if (!ok)
         return -1;
     if (pid_out)

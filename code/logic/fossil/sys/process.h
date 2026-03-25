@@ -168,6 +168,42 @@ int fossil_sys_process_spawn(const char *path, char *const argv[], char *const e
  */
 int fossil_sys_process_get_exe_path(uint32_t pid, char *buffer, size_t buf_len);
 
+/**
+ * Get the parent process ID (PPID) of a process.
+ *
+ * @param pid Process ID
+ * @return Parent process ID on success, 0 if not found, or -1 on error
+ */
+int fossil_sys_process_get_ppid(uint32_t pid);
+
+/**
+ * Get the command line of a process.
+ *
+ * @param pid Process ID
+ * @param buffer Buffer to store the command line
+ * @param buf_len Length of buffer
+ * @return 0 on success, negative error code on failure
+ */
+int fossil_sys_process_get_cmdline(uint32_t pid, char *buffer, size_t buf_len);
+
+/**
+ * Get the current working directory of a process.
+ *
+ * @param pid Process ID
+ * @param buffer Buffer to store the directory path
+ * @param buf_len Length of buffer
+ * @return 0 on success, negative error code on failure
+ */
+int fossil_sys_process_get_cwd(uint32_t pid, char *buffer, size_t buf_len);
+
+/**
+ * Send a signal to a process.
+ *
+ * @param pid Process ID
+ * @param signal Signal number (platform-dependent)
+ * @return 0 on success, negative error code on failure
+ */
+int fossil_sys_process_send_signal(uint32_t pid, int signal);
 
 #ifdef __cplusplus
 }
@@ -176,203 +212,254 @@ int fossil_sys_process_get_exe_path(uint32_t pid, char *buffer, size_t buf_len);
 /**
  * Fossil namespace.
  */
-namespace fossil
+namespace fossil::sys
 {
 
-    /**
-     * System namespace.
-     */
-    namespace sys
+    class Process
     {
-
-        class Process
+    public:
+        /**
+         * @brief Retrieves the process ID (PID) of the current process.
+         *
+         * @return uint32_t The PID of the current process.
+         */
+        static uint32_t get_pid()
         {
-        public:
-            /**
-             * @brief Retrieves the process ID (PID) of the current process.
-             *
-             * @return uint32_t The PID of the current process.
-             */
-            static uint32_t get_pid()
-            {
-                return fossil_sys_process_get_pid();
-            }
+            return fossil_sys_process_get_pid();
+        }
 
-            /**
-             * @brief Retrieves the name of the process with the specified PID.
-             *
-             * @param pid The process ID of the target process.
-             * @param name Reference to a std::string where the process name will be stored on success.
-             * @return int 0 on success, or a negative error code on failure.
-             */
-            static int get_name(uint32_t pid, std::string &name)
+        /**
+         * @brief Retrieves the name of the process with the specified PID.
+         *
+         * @param pid The process ID of the target process.
+         * @param name Reference to a std::string where the process name will be stored on success.
+         * @return int 0 on success, or a negative error code on failure.
+         */
+        static int get_name(uint32_t pid, std::string &name)
+        {
+            char buf[FOSSIL_SYS_PROCESS_NAME_MAX] = {0};
+            int ret = fossil_sys_process_get_name(pid, buf, sizeof(buf));
+            if (ret == 0)
             {
-                char buf[FOSSIL_SYS_PROCESS_NAME_MAX] = {0};
-                int ret = fossil_sys_process_get_name(pid, buf, sizeof(buf));
-                if (ret == 0)
-                {
-                    name = buf;
-                }
-                return ret;
+                name = buf;
             }
+            return ret;
+        }
 
-            /**
-             * @brief Retrieves detailed information about the process with the specified PID.
-             *
-             * @param pid The process ID of the target process.
-             * @param info Reference to a fossil_sys_process_info_t structure to be filled with process information.
-             * @return int 0 on success, or a negative error code on failure.
-             */
-            static int get_info(uint32_t pid, fossil_sys_process_info_t &info)
+        /**
+         * @brief Retrieves detailed information about the process with the specified PID.
+         *
+         * @param pid The process ID of the target process.
+         * @param info Reference to a fossil_sys_process_info_t structure to be filled with process information.
+         * @return int 0 on success, or a negative error code on failure.
+         */
+        static int get_info(uint32_t pid, fossil_sys_process_info_t &info)
+        {
+            return fossil_sys_process_get_info(pid, &info);
+        }
+
+        /**
+         * @brief Retrieves a list of all running processes.
+         *
+         * @param plist Reference to a fossil_sys_process_list_t structure to be filled with the process list.
+         * @return int 0 on success, or a negative error code on failure.
+         */
+        static int list(fossil_sys_process_list_t &plist)
+        {
+            return fossil_sys_process_list(&plist);
+        }
+
+        /**
+         * @brief Terminates the process with the specified PID.
+         *
+         * @param pid The process ID of the target process.
+         * @param force If true, forces termination; otherwise, attempts graceful termination.
+         * @return int 0 on success, or a negative error code on failure.
+         */
+        static int terminate(uint32_t pid, bool force)
+        {
+            return fossil_sys_process_terminate(pid, force ? 1 : 0);
+        }
+
+        /**
+         * @brief Retrieves the environment variables of the process with the specified PID.
+         *
+         * @param pid The process ID of the target process.
+         * @param env Reference to a std::string where the environment variables will be stored on success.
+         * @return int Number of bytes written on success, or a negative error code on failure.
+         */
+        static int get_environment(uint32_t pid, std::string &env)
+        {
+            char buf[FOSSIL_SYS_PROCESS_ENV_MAX] = {0};
+            int ret = fossil_sys_process_get_environment(pid, buf, sizeof(buf));
+            if (ret >= 0)
             {
-                return fossil_sys_process_get_info(pid, &info);
+                env.assign(buf, ret);
             }
+            return ret;
+        }
 
-            /**
-             * @brief Retrieves a list of all running processes.
-             *
-             * @param plist Reference to a fossil_sys_process_list_t structure to be filled with the process list.
-             * @return int 0 on success, or a negative error code on failure.
-             */
-            static int list(fossil_sys_process_list_t &plist)
+        /**
+         * @brief Checks if a process with the given PID exists.
+         *
+         * @param pid The process ID to check.
+         * @return int 1 if process exists, 0 if not, -1 on error.
+         */
+        static int exists(uint32_t pid)
+        {
+            return fossil_sys_process_exists(pid);
+        }
+
+        /**
+         * @brief Suspends (pauses) a process by PID.
+         *
+         * @param pid The process ID to suspend.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int suspend(uint32_t pid)
+        {
+            return fossil_sys_process_suspend(pid);
+        }
+
+        /**
+         * @brief Resumes a suspended process by PID.
+         *
+         * @param pid The process ID to resume.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int resume(uint32_t pid)
+        {
+            return fossil_sys_process_resume(pid);
+        }
+
+        /**
+         * @brief Changes the priority (nice value) of a process.
+         *
+         * @param pid The process ID.
+         * @param priority The new priority value.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int set_priority(uint32_t pid, int priority)
+        {
+            return fossil_sys_process_set_priority(pid, priority);
+        }
+
+        /**
+         * @brief Gets the priority (nice value) of a process.
+         *
+         * @param pid The process ID.
+         * @param priority Reference to store the current priority value.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int get_priority(uint32_t pid, int &priority)
+        {
+            return fossil_sys_process_get_priority(pid, &priority);
+        }
+
+        /**
+         * @brief Waits for a process to exit.
+         *
+         * @param pid The process ID.
+         * @param exit_code Reference to store the exit code (optional).
+         * @param timeout_ms Timeout in milliseconds, or -1 for infinite.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int wait(uint32_t pid, int *exit_code, int timeout_ms)
+        {
+            return fossil_sys_process_wait(pid, exit_code, timeout_ms);
+        }
+
+        /**
+         * @brief Starts a new process.
+         *
+         * @param path Path to executable.
+         * @param argv Argument vector (NULL-terminated).
+         * @param envp Environment vector (NULL-terminated, can be NULL).
+         * @param pid_out Reference to store new process ID.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int spawn(const char *path, char *const argv[], char *const envp[], uint32_t &pid_out)
+        {
+            return fossil_sys_process_spawn(path, argv, envp, &pid_out);
+        }
+
+        /**
+         * @brief Gets the executable path of a process.
+         *
+         * @param pid The process ID.
+         * @param exe_path Reference to a std::string to store the path.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int get_exe_path(uint32_t pid, std::string &exe_path)
+        {
+            char buf[FOSSIL_SYS_PROCESS_ENV_MAX] = {0};
+            int ret = fossil_sys_process_get_exe_path(pid, buf, sizeof(buf));
+            if (ret == 0)
             {
-                return fossil_sys_process_list(&plist);
+                exe_path = buf;
             }
+            return ret;
+        }
 
-            /**
-             * @brief Terminates the process with the specified PID.
-             *
-             * @param pid The process ID of the target process.
-             * @param force If true, forces termination; otherwise, attempts graceful termination.
-             * @return int 0 on success, or a negative error code on failure.
-             */
-            static int terminate(uint32_t pid, bool force)
+        /**
+         * @brief Gets the parent process ID (PPID) of a process.
+         *
+         * @param pid The process ID.
+         * @return int Parent process ID on success, 0 if not found, or -1 on error.
+         */
+        static int get_ppid(uint32_t pid)
+        {
+            return fossil_sys_process_get_ppid(pid);
+        }
+
+        /**
+         * @brief Gets the command line of a process.
+         *
+         * @param pid The process ID.
+         * @param cmdline Reference to a std::string to store the command line.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int get_cmdline(uint32_t pid, std::string &cmdline)
+        {
+            char buf[FOSSIL_SYS_PROCESS_ENV_MAX] = {0};
+            int ret = fossil_sys_process_get_cmdline(pid, buf, sizeof(buf));
+            if (ret == 0)
             {
-                return fossil_sys_process_terminate(pid, force ? 1 : 0);
+                cmdline = buf;
             }
+            return ret;
+        }
 
-            /**
-             * @brief Retrieves the environment variables of the process with the specified PID.
-             *
-             * @param pid The process ID of the target process.
-             * @param env Reference to a std::string where the environment variables will be stored on success.
-             * @return int Number of bytes written on success, or a negative error code on failure.
-             */
-            static int get_environment(uint32_t pid, std::string &env)
+        /**
+         * @brief Gets the current working directory of a process.
+         *
+         * @param pid The process ID.
+         * @param cwd Reference to a std::string to store the directory path.
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int get_cwd(uint32_t pid, std::string &cwd)
+        {
+            char buf[FOSSIL_SYS_PROCESS_ENV_MAX] = {0};
+            int ret = fossil_sys_process_get_cwd(pid, buf, sizeof(buf));
+            if (ret == 0)
             {
-                char buf[FOSSIL_SYS_PROCESS_ENV_MAX] = {0};
-                int ret = fossil_sys_process_get_environment(pid, buf, sizeof(buf));
-                if (ret >= 0)
-                {
-                    env.assign(buf, ret);
-                }
-                return ret;
+                cwd = buf;
             }
+            return ret;
+        }
 
-            /**
-             * @brief Checks if a process with the given PID exists.
-             *
-             * @param pid The process ID to check.
-             * @return int 1 if process exists, 0 if not, -1 on error.
-             */
-            static int exists(uint32_t pid)
-            {
-                return fossil_sys_process_exists(pid);
-            }
-
-            /**
-             * @brief Suspends (pauses) a process by PID.
-             *
-             * @param pid The process ID to suspend.
-             * @return int 0 on success, negative error code on failure.
-             */
-            static int suspend(uint32_t pid)
-            {
-                return fossil_sys_process_suspend(pid);
-            }
-
-            /**
-             * @brief Resumes a suspended process by PID.
-             *
-             * @param pid The process ID to resume.
-             * @return int 0 on success, negative error code on failure.
-             */
-            static int resume(uint32_t pid)
-            {
-                return fossil_sys_process_resume(pid);
-            }
-
-            /**
-             * @brief Changes the priority (nice value) of a process.
-             *
-             * @param pid The process ID.
-             * @param priority The new priority value.
-             * @return int 0 on success, negative error code on failure.
-             */
-            static int set_priority(uint32_t pid, int priority)
-            {
-                return fossil_sys_process_set_priority(pid, priority);
-            }
-
-            /**
-             * @brief Gets the priority (nice value) of a process.
-             *
-             * @param pid The process ID.
-             * @param priority Reference to store the current priority value.
-             * @return int 0 on success, negative error code on failure.
-             */
-            static int get_priority(uint32_t pid, int &priority)
-            {
-                return fossil_sys_process_get_priority(pid, &priority);
-            }
-
-            /**
-             * @brief Waits for a process to exit.
-             *
-             * @param pid The process ID.
-             * @param exit_code Reference to store the exit code (optional).
-             * @param timeout_ms Timeout in milliseconds, or -1 for infinite.
-             * @return int 0 on success, negative error code on failure.
-             */
-            static int wait(uint32_t pid, int *exit_code, int timeout_ms)
-            {
-                return fossil_sys_process_wait(pid, exit_code, timeout_ms);
-            }
-
-            /**
-             * @brief Starts a new process.
-             *
-             * @param path Path to executable.
-             * @param argv Argument vector (NULL-terminated).
-             * @param envp Environment vector (NULL-terminated, can be NULL).
-             * @param pid_out Reference to store new process ID.
-             * @return int 0 on success, negative error code on failure.
-             */
-            static int spawn(const char *path, char *const argv[], char *const envp[], uint32_t &pid_out)
-            {
-                return fossil_sys_process_spawn(path, argv, envp, &pid_out);
-            }
-
-            /**
-             * @brief Gets the executable path of a process.
-             *
-             * @param pid The process ID.
-             * @param exe_path Reference to a std::string to store the path.
-             * @return int 0 on success, negative error code on failure.
-             */
-            static int get_exe_path(uint32_t pid, std::string &exe_path)
-            {
-                char buf[FOSSIL_SYS_PROCESS_ENV_MAX] = {0};
-                int ret = fossil_sys_process_get_exe_path(pid, buf, sizeof(buf));
-                if (ret == 0)
-                {
-                    exe_path = buf;
-                }
-                return ret;
-            }
-        };
-
-    }
+        /**
+         * @brief Sends a signal to a process.
+         *
+         * @param pid The process ID.
+         * @param signal Signal number (platform-dependent).
+         * @return int 0 on success, negative error code on failure.
+         */
+        static int send_signal(uint32_t pid, int signal)
+        {
+            return fossil_sys_process_send_signal(pid, signal);
+        }
+    };
 
 }
 

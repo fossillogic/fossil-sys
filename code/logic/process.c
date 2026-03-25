@@ -308,6 +308,62 @@ int fossil_sys_process_get_exe_path(uint32_t pid, char *buffer, size_t buf_len)
     return 0;
 }
 
+int fossil_sys_process_get_ppid(uint32_t pid)
+{
+    char path[256];
+    snprintf(path, sizeof(path), "/proc/%u/stat", pid);
+    FILE *fp = fopen(path, "r");
+    if (!fp)
+        return -1;
+    int ppid = 0;
+    int scanned = fscanf(fp, "%*d %*s %*c %d", &ppid);
+    fclose(fp);
+    if (scanned != 1)
+        return 0;
+    return ppid;
+}
+
+int fossil_sys_process_get_cmdline(uint32_t pid, char *buffer, size_t buf_len)
+{
+    if (!buffer || buf_len == 0)
+        return -1;
+    char path[256];
+    snprintf(path, sizeof(path), "/proc/%u/cmdline", pid);
+    FILE *fp = fopen(path, "r");
+    if (!fp)
+        return -2;
+    size_t total_read = fread(buffer, 1, buf_len - 1, fp);
+    fclose(fp);
+    if (total_read == 0)
+        return -3;
+    // Replace '\0' with spaces except the last one
+    for (size_t i = 0; i < total_read - 1; ++i)
+        if (buffer[i] == '\0')
+            buffer[i] = ' ';
+    buffer[total_read] = '\0';
+    return 0;
+}
+
+int fossil_sys_process_get_cwd(uint32_t pid, char *buffer, size_t buf_len)
+{
+    if (!buffer || buf_len == 0)
+        return -1;
+    char path[256];
+    snprintf(path, sizeof(path), "/proc/%u/cwd", pid);
+    ssize_t len = readlink(path, buffer, buf_len - 1);
+    if (len < 0)
+        return -2;
+    buffer[len] = '\0';
+    return 0;
+}
+
+int fossil_sys_process_send_signal(uint32_t pid, int signal)
+{
+    if (kill(pid, signal) == 0)
+        return 0;
+    return -1;
+}
+
 #elif defined(_WIN32)
 #include <windows.h>
 #include <winternl.h>
@@ -654,6 +710,72 @@ int fossil_sys_process_get_exe_path(uint32_t pid, char *buffer, size_t buf_len)
     return ok ? 0 : -3;
 }
 
+int fossil_sys_process_get_ppid(uint32_t pid)
+{
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap == INVALID_HANDLE_VALUE)
+        return -1;
+    PROCESSENTRY32 pe;
+    pe.dwSize = sizeof(pe);
+    int ppid = 0;
+    if (Process32First(snap, &pe))
+    {
+        do
+        {
+            if (pe.th32ProcessID == pid)
+            {
+                ppid = (int)pe.th32ParentProcessID;
+                break;
+            }
+        } while (Process32Next(snap, &pe));
+    }
+    CloseHandle(snap);
+    return ppid;
+}
+
+int fossil_sys_process_get_cmdline(uint32_t pid, char *buffer, size_t buf_len)
+{
+    if (!buffer || buf_len == 0)
+        return -1;
+    HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+    if (!hProc)
+        return -2;
+    int ret = -3;
+    HMODULE hMod;
+    DWORD cbNeeded;
+    if (EnumProcessModules(hProc, &hMod, sizeof(hMod), &cbNeeded))
+    {
+        WCHAR wcmd[2048] = {0};
+        if (GetProcessCommandLineW && GetProcessCommandLineW(hProc, wcmd, sizeof(wcmd) / sizeof(WCHAR)))
+        {
+            int len = WideCharToMultiByte(CP_UTF8, 0, wcmd, -1, buffer, (int)buf_len, NULL, NULL);
+            if (len > 0)
+                ret = 0;
+        }
+    }
+    CloseHandle(hProc);
+    return ret;
+}
+
+int fossil_sys_process_get_cwd(uint32_t pid, char *buffer, size_t buf_len)
+{
+    // Not trivial on Windows, requires reading remote process memory.
+    // Not implemented here.
+    (void)pid;
+    (void)buffer;
+    (void)buf_len;
+    return -1;
+}
+
+int fossil_sys_process_send_signal(uint32_t pid, int signal)
+{
+    // Windows does not support POSIX signals.
+    // For SIGTERM/SIGKILL, use TerminateProcess.
+    if (signal == 9 || signal == 15)
+        return fossil_sys_process_terminate(pid, 1);
+    return -1;
+}
+
 #else
 // stubs for unsupported platforms
 uint32_t fossil_sys_process_get_pid(void) { return 0; }
@@ -748,6 +870,35 @@ int fossil_sys_process_get_exe_path(uint32_t pid, char *buffer, size_t buf_len)
     (void)pid;
     (void)buffer;
     (void)buf_len;
+    return -1;
+}
+
+int fossil_sys_process_get_ppid(uint32_t pid)
+{
+    (void)pid;
+    return -1;
+}
+
+int fossil_sys_process_get_cmdline(uint32_t pid, char *buffer, size_t buf_len)
+{
+    (void)pid;
+    (void)buffer;
+    (void)buf_len;
+    return -1;
+}
+
+int fossil_sys_process_get_cwd(uint32_t pid, char *buffer, size_t buf_len)
+{
+    (void)pid;
+    (void)buffer;
+    (void)buf_len;
+    return -1;
+}
+
+int fossil_sys_process_send_signal(uint32_t pid, int signal)
+{
+    (void)pid;
+    (void)signal;
     return -1;
 }
 #endif

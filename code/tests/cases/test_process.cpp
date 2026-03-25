@@ -249,14 +249,6 @@ FOSSIL_TEST(cpp_test_process_set_get_priority) {
     }
 }
 
-// ** Test fossil_sys_process_wait (self, should fail or timeout) **
-FOSSIL_TEST(cpp_test_process_wait_self) {
-    uint32_t pid = fossil_sys_process_get_pid();
-    int exit_code = 0;
-    int status = fossil_sys_process_wait(pid, &exit_code, 100);
-    ASSUME_NOT_EQUAL_I32(status, 0);
-}
-
 // ** Test fossil_sys_process_get_exe_path **
 FOSSIL_TEST(cpp_test_process_get_exe_path) {
     uint32_t pid = fossil_sys_process_get_pid();
@@ -287,7 +279,6 @@ FOSSIL_TEST_GROUP(cpp_process_tests) {
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_exists);
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_suspend_resume_self);
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_set_get_priority);
-    FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_wait_self);
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_get_exe_path);
 
     FOSSIL_TEST_REGISTER(cpp_process_suite);

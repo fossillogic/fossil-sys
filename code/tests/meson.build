@@ -7,5 +7,5 @@ if get_option('with_test').enabled()
     pizza_c = executable('pizza', test_cases, include_directories: dir,
         dependencies: [dependency('fossil-test'), fossil_sys_dep])
 
-    test('fossil testing C', pizza_c, timeout: 60)
+    test('fossil testing C', pizza_c)
 endif

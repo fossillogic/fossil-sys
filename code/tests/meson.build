@@ -4,7 +4,9 @@ if get_option('with_test').enabled()
 
     test_cases = ['unit_runner.c', cards.stdout().strip().split('\n')]
 
-    pizza_c = executable('pizza', test_cases, include_directories: dir,
+    pizza_c = executable('pizza', test_cases,
+        include_directories: dir,
+        timeout: 60,
         dependencies: [dependency('fossil-test'), fossil_sys_dep])
 
     test('fossil testing C', pizza_c)

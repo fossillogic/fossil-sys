@@ -170,7 +170,7 @@ FOSSIL_TEST(c_test_process_wait_self) {
 // ** Test fossil_sys_process_spawn, fossil_sys_process_wait, and fossil_sys_process_terminate **
 FOSSIL_TEST(c_test_process_spawn_wait_terminate) {
 #if defined(__linux__) || defined(__APPLE__)
-    const char *const argv[] = {"/bin/echo", "fossil_test", NULL};
+    char *const argv[] = {"/bin/echo", "fossil_test", NULL};
     uint32_t child_pid = 0;
     int spawn_status = fossil_sys_process_spawn("/bin/echo", argv, NULL, &child_pid);
     ASSUME_ITS_EQUAL_I32(spawn_status, 0);

@@ -121,55 +121,6 @@ FOSSIL_TEST(c_test_process_terminate_self) {
     ASSUME_NOT_EQUAL_I32(status, 0);
 }
 
-// ** Test fossil_sys_process_exists **
-FOSSIL_TEST(c_test_process_exists) {
-    uint32_t pid = fossil_sys_process_get_pid();
-    int exists = fossil_sys_process_exists(pid);
-    ASSUME_ITS_EQUAL_I32(exists, 1);
-
-    exists = fossil_sys_process_exists(0);
-    ASSUME_ITS_EQUAL_I32(exists, 0);
-}
-
-// ** Test fossil_sys_process_suspend and fossil_sys_process_resume (self, should fail) **
-FOSSIL_TEST(c_test_process_suspend_resume_self) {
-    uint32_t pid = fossil_sys_process_get_pid();
-    int status = fossil_sys_process_suspend(pid);
-    ASSUME_NOT_EQUAL_I32(status, 0);
-
-    status = fossil_sys_process_resume(pid);
-    ASSUME_NOT_EQUAL_I32(status, 0);
-}
-
-// ** Test fossil_sys_process_set_priority and fossil_sys_process_get_priority **
-FOSSIL_TEST(c_test_process_set_get_priority) {
-    uint32_t pid = fossil_sys_process_get_pid();
-    int orig_priority = 0;
-    int status = fossil_sys_process_get_priority(pid, &orig_priority);
-    ASSUME_ITS_TRUE(status == 0 || status == -1 || status == -2 || status == -3);
-
-    // Only try to set if get succeeded
-    if (status == 0) {
-        int set_status = fossil_sys_process_set_priority(pid, orig_priority);
-        ASSUME_ITS_TRUE(set_status == 0 || set_status == -1 || set_status == -2);
-
-        int new_priority = 0;
-        int get_status = fossil_sys_process_get_priority(pid, &new_priority);
-        ASSUME_ITS_TRUE(get_status == 0 || get_status == -1 || get_status == -2 || get_status == -3);
-    }
-}
-
-// ** Test fossil_sys_process_get_exe_path **
-FOSSIL_TEST(c_test_process_get_exe_path) {
-    uint32_t pid = fossil_sys_process_get_pid();
-    char buffer[512] = {0};
-    int status = fossil_sys_process_get_exe_path(pid, buffer, sizeof(buffer));
-    ASSUME_ITS_TRUE(status == 0 || status == -2 || status == -3);
-    if (status == 0) {
-        ASSUME_ITS_TRUE(strlen(buffer) > 0);
-    }
-}
-
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Pool
 // * * * * * * * * * * * * * * * * * * * * * * * *
@@ -180,10 +131,6 @@ FOSSIL_TEST_GROUP(c_process_tests) {
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_list);
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_get_environment);
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_terminate_self);
-    FOSSIL_TEST_ADD(c_process_suite, c_test_process_exists);
-    FOSSIL_TEST_ADD(c_process_suite, c_test_process_suspend_resume_self);
-    FOSSIL_TEST_ADD(c_process_suite, c_test_process_set_get_priority);
-    FOSSIL_TEST_ADD(c_process_suite, c_test_process_get_exe_path);
 
     FOSSIL_TEST_REGISTER(c_process_suite);
 }

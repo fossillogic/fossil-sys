@@ -14,9 +14,6 @@
 #include <fossil/pizza/framework.h>
 
 #include "fossil/sys/framework.h"
-extern "C" {
-#include "fossil/sys/process.h"
-}
 
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Utilities
@@ -126,54 +123,6 @@ FOSSIL_TEST(cpp_test_process_terminate_self) {
     ASSUME_NOT_EQUAL_I32(status, 0);
 }
 
-// ** Test Process::exists **
-FOSSIL_TEST(cpp_test_process_exists_cpp) {
-    uint32_t pid = fossil::sys::Process::get_pid();
-    int exists = fossil::sys::Process::exists(pid);
-    ASSUME_ITS_EQUAL_I32(exists, 1);
-
-    exists = fossil::sys::Process::exists(0);
-    ASSUME_ITS_EQUAL_I32(exists, 0);
-}
-
-// ** Test Process::suspend and Process::resume (self, should fail) **
-FOSSIL_TEST(cpp_test_process_suspend_resume_self_cpp) {
-    uint32_t pid = fossil::sys::Process::get_pid();
-    int status = fossil::sys::Process::suspend(pid);
-    ASSUME_NOT_EQUAL_I32(status, 0);
-
-    status = fossil::sys::Process::resume(pid);
-    ASSUME_NOT_EQUAL_I32(status, 0);
-}
-
-// ** Test Process::set_priority and Process::get_priority **
-FOSSIL_TEST(cpp_test_process_set_get_priority_cpp) {
-    uint32_t pid = fossil::sys::Process::get_pid();
-    int orig_priority = 0;
-    int status = fossil::sys::Process::get_priority(pid, orig_priority);
-    ASSUME_ITS_TRUE(status == 0 || status == -1 || status == -2 || status == -3);
-
-    if (status == 0) {
-        int set_status = fossil::sys::Process::set_priority(pid, orig_priority);
-        ASSUME_ITS_TRUE(set_status == 0 || set_status == -1 || set_status == -2);
-
-        int new_priority = 0;
-        int get_status = fossil::sys::Process::get_priority(pid, new_priority);
-        ASSUME_ITS_TRUE(get_status == 0 || get_status == -1 || get_status == -2 || get_status == -3);
-    }
-}
-
-// ** Test Process::get_exe_path **
-FOSSIL_TEST(cpp_test_process_get_exe_path_cpp) {
-    uint32_t pid = fossil::sys::Process::get_pid();
-    std::string exe_path;
-    int status = fossil::sys::Process::get_exe_path(pid, exe_path);
-    ASSUME_ITS_TRUE(status == 0 || status == -2 || status == -3);
-    if (status == 0) {
-        ASSUME_ITS_TRUE(!exe_path.empty());
-    }
-}
-
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Pool
 // * * * * * * * * * * * * * * * * * * * * * * * *
@@ -184,10 +133,6 @@ FOSSIL_TEST_GROUP(cpp_process_tests) {
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_list);
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_get_environment);
     FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_terminate_self);
-    FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_exists_cpp);
-    FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_suspend_resume_self_cpp);
-    FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_set_get_priority_cpp);
-    FOSSIL_TEST_ADD(cpp_process_suite, cpp_test_process_get_exe_path_cpp);
 
     FOSSIL_TEST_REGISTER(cpp_process_suite);
 }

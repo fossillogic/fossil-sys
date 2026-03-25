@@ -168,6 +168,7 @@ int fossil_sys_process_spawn(const char *path, char *const argv[], char *const e
  */
 int fossil_sys_process_get_exe_path(uint32_t pid, char *buffer, size_t buf_len);
 
+
 #ifdef __cplusplus
 }
 #include <string>

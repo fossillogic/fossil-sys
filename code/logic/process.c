@@ -256,7 +256,7 @@ int fossil_sys_process_wait(uint32_t pid, int *exit_code, int timeout_ms)
         while (waited < timeout_ms)
         {
             pid_t ret = waitpid(pid, &status, WNOHANG);
-            if (ret == pid)
+            if (ret == (pid_t)pid)
                 break;
             if (ret < 0)
                 return -1;

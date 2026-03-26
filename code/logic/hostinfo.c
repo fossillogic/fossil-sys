@@ -32,6 +32,7 @@
 #include <errno.h>
 
 #ifdef _WIN32
+    #include <winsock2.h> // for inet_ntoa on Windows
     #include <windows.h>
     #include <tchar.h>
     #include <sysinfoapi.h>
@@ -49,6 +50,8 @@
     #include <sys/types.h>
     #include <sys/sysinfo.h>
     #include <sys/statvfs.h>
+    #include <arpa/inet.h>
+    #include <locale.h>
     #include <netdb.h>
 #endif
 

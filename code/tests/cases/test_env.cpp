@@ -140,13 +140,13 @@ FOSSIL_TEST(cpp_test_env_get_set) {
 
     const char *got = fossil_sys_env_get(key);
     ASSUME_NOT_CNULL(got);
-    ASSUME_ITS_EQUAL_STR(got, value);
+    ASSUME_ITS_EQUAL_CSTR(got, value);
 
     // Unset and check
     set_result = fossil_sys_env_set(key, NULL);
     ASSUME_ITS_EQUAL_I32(set_result, 0);
     got = fossil_sys_env_get(key);
-    ASSUME_CNULL(got);
+    ASSUME_ITS_CNULL(got);
 }
 
 // ** Test fossil_sys_env_exists **
@@ -164,11 +164,11 @@ FOSSIL_TEST(cpp_test_env_get_or) {
     fossil_sys_env_set(key, NULL);
     const char *fallback = "fallback_value";
     const char *got = fossil_sys_env_get_or(key, fallback);
-    ASSUME_ITS_EQUAL_STR(got, fallback);
+    ASSUME_ITS_EQUAL_CSTR(got, fallback);
 
     fossil_sys_env_set(key, "real_value");
     got = fossil_sys_env_get_or(key, fallback);
-    ASSUME_ITS_EQUAL_STR(got, "real_value");
+    ASSUME_ITS_EQUAL_CSTR(got, "real_value");
     fossil_sys_env_set(key, NULL);
 }
 

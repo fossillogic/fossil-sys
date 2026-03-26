@@ -15,7 +15,7 @@ fossil_sys_lib = library('fossil_sys',
         'process.c',
         'bitwise.c',
         'event.c',
-        'os.c'),
+        'env.c'),
     install: true,
     dependencies: [libdl, dependency('threads')],
     include_directories: dir)

@@ -52,6 +52,18 @@
     #include <netdb.h>
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#include <dxgi.h>       // DirectX Graphics Infrastructure
+#include <comdef.h>
+#include <wrl/client.h>
+#pragma comment(lib, "dxgi.lib")
+#elif defined(__APPLE__)
+#include <IOKit/IOKitLib.h>
+#include <IOKit/graphics/IOGraphicsLib.h>
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 #include <fcntl.h>   // for open(), O_RDONLY
 #include <ctype.h>   // for isspace()
 #include <stdio.h>
@@ -322,19 +334,57 @@ int fossil_sys_hostinfo_get_gpu(fossil_sys_hostinfo_gpu_t *info) {
     if (!info) return -1;
     memset(info, 0, sizeof(*info));
 #ifdef _WIN32
-    // Windows: Use WMI or DX APIs for real info; fallback to unknown
-    strncpy(info->name, "Unknown", sizeof(info->name) - 1);
-    strncpy(info->vendor, "Unknown", sizeof(info->vendor) - 1);
-    strncpy(info->driver_version, "Unknown", sizeof(info->driver_version) - 1);
-    info->memory_total = 0;
-    info->memory_free = 0;
+    // Use DXGI to enumerate adapters
+    Microsoft::WRL::ComPtr<IDXGIFactory> factory;
+    if (SUCCEEDED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)factory.GetAddressOf()))) {
+        IDXGIAdapter *adapter = nullptr;
+        if (factory->EnumAdapters(0, &adapter) == S_OK) {  // first GPU
+            DXGI_ADAPTER_DESC desc;
+            adapter->GetDesc(&desc);
+
+            // Copy strings
+            wcstombs(info->name, desc.Description, sizeof(info->name)-1);
+            strncpy(info->vendor, "Unknown", sizeof(info->vendor)-1); // Vendor ID can be parsed if desired
+            snprintf(info->driver_version, sizeof(info->driver_version), "DeviceID: %u", desc.DeviceId);
+
+            info->memory_total = desc.DedicatedVideoMemory;
+            info->memory_free = 0;  // DXGI doesn't provide free memory directly
+            adapter->Release();
+        }
+    }
 #elif defined(__APPLE__)
-    // macOS: Use IOKit for real info; fallback to unknown
-    strncpy(info->name, "Unknown", sizeof(info->name) - 1);
-    strncpy(info->vendor, "Unknown", sizeof(info->vendor) - 1);
-    strncpy(info->driver_version, "Unknown", sizeof(info->driver_version) - 1);
-    info->memory_total = 0;
-    info->memory_free = 0;
+    // macOS: Use IOKit to find GPU devices
+    CFMutableDictionaryRef matchDict = IOServiceMatching("IOPCIDevice");
+    if (matchDict) {
+        io_iterator_t iter;
+        if (IOServiceGetMatchingServices(kIOMasterPortDefault, matchDict, &iter) == KERN_SUCCESS) {
+            io_object_t service;
+            while ((service = IOIteratorNext(iter))) {
+                CFStringRef model = (CFStringRef) IORegistryEntryCreateCFProperty(
+                    service, CFSTR("model"), kCFAllocatorDefault, 0);
+                if (model) {
+                    CFIndex length = CFStringGetLength(model);
+                    CFIndex maxSize = CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8) + 1;
+                    char buffer[256];
+                    if (maxSize < sizeof(buffer)) {
+                        if (CFStringGetCString(model, buffer, sizeof(buffer), kCFStringEncodingUTF8)) {
+                            strncpy(info->name, buffer, sizeof(info->name)-1);
+                            strncpy(info->vendor, "Apple/AMD/NVIDIA", sizeof(info->vendor)-1);
+                            strncpy(info->driver_version, "Unknown", sizeof(info->driver_version)-1);
+                            info->memory_total = 0;  // macOS doesn't expose VRAM easily
+                            info->memory_free = 0;
+                            CFRelease(model);
+                            IOObjectRelease(service);
+                            break;  // just pick the first GPU
+                        }
+                    }
+                    CFRelease(model);
+                }
+                IOObjectRelease(service);
+            }
+            IOObjectRelease(iter);
+        }
+    }
 #else
     // Linux: Try to parse lspci and glxinfo output if available
     FILE *fp = popen("lspci -mm | grep VGA", "r");

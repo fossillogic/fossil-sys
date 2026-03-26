@@ -60,7 +60,6 @@
 #include <dxgi.h>       // DirectX Graphics Infrastructure
 #include <comdef.h>
 #include <wrl/client.h>
-#pragma comment(lib, "dxgi.lib")
 #elif defined(__APPLE__)
 #include <IOKit/IOKitLib.h>
 #include <IOKit/graphics/IOGraphicsLib.h>

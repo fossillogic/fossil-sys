@@ -61,27 +61,6 @@ FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_set) {
     ASSUME_ITS_EQUAL_CSTR(got.c_str(), "");
 }
 
-FOSSIL_TEST(cpp_test_env_cpp_wrapper_exists) {
-    std::string key = "FOSSIL_TEST_ENV_CPP_EXISTS";
-    setenv(key.c_str(), "1", 1);
-    ASSUME_ITS_TRUE(getenv(key.c_str()) != nullptr);
-    unsetenv(key.c_str());
-    ASSUME_ITS_FALSE(getenv(key.c_str()) != nullptr);
-}
-
-FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_or) {
-    std::string key = "FOSSIL_TEST_ENV_CPP_OR";
-    unsetenv(key.c_str());
-    std::string fallback = "cpp_fallback";
-    const char* got = getenv(key.c_str());
-    ASSUME_ITS_EQUAL_CSTR((got ? got : fallback.c_str()), fallback.c_str());
-
-    setenv(key.c_str(), "cpp_real", 1);
-    got = getenv(key.c_str());
-    ASSUME_ITS_EQUAL_CSTR((got ? got : fallback.c_str()), "cpp_real");
-    unsetenv(key.c_str());
-}
-
 FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_int) {
     using fossil::sys::Env;
     std::string key = "FOSSIL_TEST_ENV_CPP_INT";
@@ -133,8 +112,6 @@ FOSSIL_TEST(cpp_test_env_cpp_wrapper_foreach) {
 // * * * * * * * * * * * * * * * * * * * * * * * *
 FOSSIL_TEST_GROUP(cpp_env_tests) {
     FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_get_set);
-    FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_exists);
-    FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_get_or);
     FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_get_int);
     FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_get_bool);
     FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_foreach);

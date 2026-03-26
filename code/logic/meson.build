@@ -5,6 +5,16 @@ cc = meson.get_compiler('c')
 
 libdl = cc.find_library('dl', required : false)
 
+# ------------------------------
+# Platform-specific dependencies
+# ------------------------------
+if host_machine.system() == 'windows'
+    winsock_dep = cc.find_library('ws2_32', required: true)
+    bcrypt_dep  = cc.find_library('bcrypt', required: true)
+else
+    winsock_dep = []
+    bcrypt_dep  = []
+endif
 
 fossil_sys_lib = library('fossil_sys',
     files(
@@ -17,7 +27,7 @@ fossil_sys_lib = library('fossil_sys',
         'event.c',
         'env.c'),
     install: true,
-    dependencies: [libdl, dependency('threads')],
+    dependencies: [libdl, winsock_dep, bcrypt_dep,dependency('threads')],
     include_directories: dir)
 
 fossil_sys_dep = declare_dependency(

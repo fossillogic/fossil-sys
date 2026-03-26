@@ -14,6 +14,11 @@
 #include <fossil/pizza/framework.h>
 
 #include "fossil/sys/framework.h"
+
+// Ensure POSIX functions are available
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
 #include <cstdlib>
 
 // * * * * * * * * * * * * * * * * * * * * * * * *

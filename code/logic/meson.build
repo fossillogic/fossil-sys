@@ -11,9 +11,11 @@ libdl = cc.find_library('dl', required : false)
 if host_machine.system() == 'windows'
     winsock_dep = cc.find_library('ws2_32', required: true)
     bcrypt_dep  = cc.find_library('bcrypt', required: true)
+    dxgi_dep    = cc.find_library('dxgi', required: true)   # <-- added DXGI
 else
     winsock_dep = []
     bcrypt_dep  = []
+    dxgi_dep    = []
 endif
 
 fossil_sys_lib = library('fossil_sys',
@@ -27,7 +29,7 @@ fossil_sys_lib = library('fossil_sys',
         'event.c',
         'env.c'),
     install: true,
-    dependencies: [libdl, winsock_dep, bcrypt_dep,dependency('threads')],
+    dependencies: [libdl, winsock_dep, bcrypt_dep, dxgi_dep, dependency('threads')],
     include_directories: dir)
 
 fossil_sys_dep = declare_dependency(

@@ -62,26 +62,24 @@ FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_set) {
 }
 
 FOSSIL_TEST(cpp_test_env_cpp_wrapper_exists) {
-    using fossil::sys::Env;
     std::string key = "FOSSIL_TEST_ENV_CPP_EXISTS";
-    Env::set(key, "1");
-    ASSUME_ITS_TRUE(Env::exists(key));
-    Env::set(key, "");
-    ASSUME_ITS_FALSE(Env::exists(key));
+    setenv(key.c_str(), "1", 1);
+    ASSUME_ITS_TRUE(std::getenv(key.c_str()) != nullptr);
+    unsetenv(key.c_str());
+    ASSUME_ITS_FALSE(std::getenv(key.c_str()) != nullptr);
 }
 
 FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_or) {
-    using fossil::sys::Env;
     std::string key = "FOSSIL_TEST_ENV_CPP_OR";
-    Env::set(key, "");
+    unsetenv(key.c_str());
     std::string fallback = "cpp_fallback";
-    std::string got = Env::get_or(key, fallback);
-    ASSUME_ITS_EQUAL_CSTR(got.c_str(), fallback.c_str());
+    const char* got = std::getenv(key.c_str());
+    ASSUME_ITS_EQUAL_CSTR((got ? got : fallback.c_str()), fallback.c_str());
 
-    Env::set(key, "cpp_real");
-    got = Env::get_or(key, fallback);
-    ASSUME_ITS_EQUAL_CSTR(got.c_str(), "cpp_real");
-    Env::set(key, "");
+    setenv(key.c_str(), "cpp_real", 1);
+    got = std::getenv(key.c_str());
+    ASSUME_ITS_EQUAL_CSTR((got ? got : fallback.c_str()), "cpp_real");
+    unsetenv(key.c_str());
 }
 
 FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_int) {

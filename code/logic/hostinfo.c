@@ -24,6 +24,13 @@
  */
 #include "fossil/sys/hostinfo.h"
 
+#if defined(__APPLE__)
+    // Must define this **before including any headers** to get getloadavg
+    #ifndef _DARWIN_C_SOURCE
+        #define _DARWIN_C_SOURCE
+    #endif
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

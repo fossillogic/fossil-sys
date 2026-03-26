@@ -49,7 +49,6 @@
     #include <sys/utsname.h>
     #include <sys/types.h>
     #include <sys/sysctl.h>
-    #include <sys/loadavg.h>
     #include <sys/time.h>
 #else
     // Unix/Linux

@@ -964,3 +964,232 @@ int fossil_sys_hostinfo_get_virtualization(
 
     return 0;
 }
+
+int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info) {
+    if (!info) return -1;
+    fossil_sys_zero(info, sizeof(*info));
+
+#if defined(_WIN32)
+    char hostname[128];
+    DWORD size = sizeof(hostname);
+    if (GetComputerNameA(hostname, &size))
+        fossil_sys_strcpy(info->hostname, sizeof(info->hostname), hostname);
+    else
+        fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
+
+    fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
+    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
+    info->is_up = 1;
+
+#elif defined(__APPLE__) || defined(__linux__)
+    if (gethostname(info->hostname, sizeof(info->hostname)) != 0)
+        fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
+
+    struct addrinfo hints, *res = NULL;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+
+    if (getaddrinfo(info->hostname, NULL, &hints, &res) == 0 && res) {
+        struct sockaddr_in *addr = (struct sockaddr_in *)res->ai_addr;
+        const char *ip = inet_ntoa(addr->sin_addr);
+        if (ip)
+            fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
+        freeaddrinfo(res);
+    } else {
+        fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
+    }
+
+    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
+    info->is_up = 1;
+
+#else
+    fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
+    fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
+    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
+    info->is_up = 0;
+#endif
+
+    return 0;
+}
+
+int fossil_sys_hostinfo_get_process(fossil_sys_hostinfo_process_t *info) {
+    if (!info) return -1;
+    fossil_sys_zero(info, sizeof(*info));
+
+#if defined(_WIN32)
+    info->pid = GetCurrentProcessId();
+    info->ppid = 0;
+
+    GetModuleFileNameA(NULL, info->executable_path, sizeof(info->executable_path));
+
+    GetCurrentDirectoryA(sizeof(info->current_working_dir), info->current_working_dir);
+
+    fossil_sys_strcpy(info->process_name, sizeof(info->process_name), "process");
+
+    info->is_elevated = 0;
+
+#elif defined(__unix__) || defined(__APPLE__)
+    info->pid = getpid();
+    info->ppid = getppid();
+
+    if (getcwd(info->current_working_dir, sizeof(info->current_working_dir)) == NULL)
+        fossil_sys_strcpy(info->current_working_dir, sizeof(info->current_working_dir), "Unknown");
+
+#if defined(__linux__)
+    ssize_t len = readlink("/proc/self/exe", info->executable_path, sizeof(info->executable_path) - 1);
+    if (len != -1) {
+        info->executable_path[len] = '\0';
+    } else {
+        fossil_sys_strcpy(info->executable_path, sizeof(info->executable_path), "Unknown");
+    }
+#else
+    fossil_sys_strcpy(info->executable_path, sizeof(info->executable_path), "Unknown");
+#endif
+
+    fossil_sys_strcpy(info->process_name, sizeof(info->process_name), "process");
+
+    info->is_elevated = (geteuid() == 0) ? 1 : 0;
+
+#else
+    return -2;
+#endif
+
+    return 0;
+}
+
+int fossil_sys_hostinfo_get_limits(fossil_sys_hostinfo_limits_t *info) {
+    if (!info) return -1;
+    fossil_sys_zero(info, sizeof(*info));
+
+#if defined(__unix__) || defined(__APPLE__)
+    #include <sys/resource.h>
+
+    struct rlimit rl;
+
+    if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+        info->max_open_files = rl.rlim_cur;
+
+    info->page_size = (uint64_t)sysconf(_SC_PAGESIZE);
+
+#elif defined(_WIN32)
+    info->max_open_files = 0;
+    info->page_size = 4096;
+#endif
+
+    info->max_processes = 0; // Not portable
+
+    return 0;
+}
+
+int fossil_sys_hostinfo_get_time(fossil_sys_hostinfo_time_t *info) {
+    if (!info) return -1;
+    fossil_sys_zero(info, sizeof(*info));
+
+    time_t now = time(NULL);
+    struct tm local_tm;
+    struct tm utc_tm;
+
+#if defined(_WIN32)
+    localtime_s(&local_tm, &now);
+    gmtime_s(&utc_tm, &now);
+#else
+    localtime_r(&now, &local_tm);
+    gmtime_r(&now, &utc_tm);
+#endif
+
+    info->utc_offset_seconds =
+        (local_tm.tm_hour - utc_tm.tm_hour) * 3600;
+
+    strftime(info->timezone, sizeof(info->timezone), "%Z", &local_tm);
+
+    const char *loc = setlocale(LC_ALL, NULL);
+    if (loc)
+        fossil_sys_strcpy(info->locale, sizeof(info->locale), loc);
+    else
+        fossil_sys_strcpy(info->locale, sizeof(info->locale), "Unknown");
+
+    return 0;
+}
+
+int fossil_sys_hostinfo_get_load(fossil_sys_hostinfo_load_t *info) {
+    if (!info) return -1;
+    fossil_sys_zero(info, sizeof(*info));
+
+#if defined(__linux__) || defined(__APPLE__)
+    double loads[3];
+    if (getloadavg(loads, 3) == 3) {
+        info->load_avg_1m = (float)loads[0];
+        info->load_avg_5m = (float)loads[1];
+        info->load_avg_15m = (float)loads[2];
+    }
+#endif
+
+    info->cpu_usage_percent = 0.0f; // requires sampling
+
+    return 0;
+}
+
+int fossil_sys_hostinfo_get_hardware(fossil_sys_hostinfo_hardware_t *info) {
+    if (!info) return -1;
+    fossil_sys_zero(info, sizeof(*info));
+
+#if defined(__linux__)
+    FILE *fp;
+
+    fp = fopen("/sys/class/dmi/id/sys_vendor", "r");
+    if (fp) {
+        fgets(info->manufacturer, sizeof(info->manufacturer), fp);
+        fclose(fp);
+    }
+
+    fp = fopen("/sys/class/dmi/id/product_name", "r");
+    if (fp) {
+        fgets(info->product_name, sizeof(info->product_name), fp);
+        fclose(fp);
+    }
+
+    fp = fopen("/sys/class/dmi/id/product_serial", "r");
+    if (fp) {
+        fgets(info->serial_number, sizeof(info->serial_number), fp);
+        fclose(fp);
+    }
+
+    fp = fopen("/sys/class/dmi/id/bios_version", "r");
+    if (fp) {
+        fgets(info->bios_version, sizeof(info->bios_version), fp);
+        fclose(fp);
+    }
+#else
+    fossil_sys_strcpy(info->manufacturer, sizeof(info->manufacturer), "Unknown");
+    fossil_sys_strcpy(info->product_name, sizeof(info->product_name), "Unknown");
+    fossil_sys_strcpy(info->serial_number, sizeof(info->serial_number), "Unknown");
+    fossil_sys_strcpy(info->bios_version, sizeof(info->bios_version), "Unknown");
+#endif
+
+    return 0;
+}
+
+int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info) {
+    if (!info) return -1;
+    fossil_sys_zero(info, sizeof(*info));
+
+#if defined(_WIN32)
+    info->display_count = GetSystemMetrics(SM_CMONITORS);
+    info->primary_width = GetSystemMetrics(SM_CXSCREEN);
+    info->primary_height = GetSystemMetrics(SM_CYSCREEN);
+    info->primary_refresh_rate = 0;
+
+#elif defined(__APPLE__) || defined(__linux__)
+    info->display_count = 1;
+    info->primary_width = 0;
+    info->primary_height = 0;
+    info->primary_refresh_rate = 0;
+#else
+    return -2;
+#endif
+
+    return 0;
+}

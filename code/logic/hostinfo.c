@@ -50,6 +50,7 @@
     #include <sys/types.h>
     #include <sys/sysinfo.h>
     #include <sys/statvfs.h>
+    #include <sys/loadavg.h>
     #include <arpa/inet.h>
     #include <locale.h>
     #include <netdb.h>

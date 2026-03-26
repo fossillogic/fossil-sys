@@ -33,6 +33,6 @@
 #include "process.h"
 #include "memory.h"
 #include "event.h"
-#include "os.h"
+#include "env.h"
 
 #endif /* FOSSIL_SYS_FRAMEWORK_H */

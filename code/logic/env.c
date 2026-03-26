@@ -226,7 +226,11 @@ static const char* fossil_sys_env_resolve_id(const char* key) {
      }
 
      /* Fallback: try as OS environment variable */
-     return fossil_sys_env_get(key);
+#if defined(_WIN32)
+     return getenv(key);
+#else
+     return getenv(key);
+#endif
 }
 
 const char*

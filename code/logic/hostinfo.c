@@ -1185,16 +1185,47 @@ int fossil_sys_hostinfo_get_load(fossil_sys_hostinfo_load_t *info) {
     if (!info) return -1;
     fossil_sys_zero(info, sizeof(*info));
 
-#if defined(__linux__) || defined(__APPLE__)
-    double loads[3];
+#if defined(_WIN32)
+    // Windows: getloadavg() not available, use placeholder values
+    info->load_avg_1m  = 0.0f;
+    info->load_avg_5m  = 0.0f;
+    info->load_avg_15m = 0.0f;
+
+#elif defined(__APPLE__)
+    double loads[3] = {0.0, 0.0, 0.0};
     if (getloadavg(loads, 3) == 3) {
-        info->load_avg_1m = (float)loads[0];
-        info->load_avg_5m = (float)loads[1];
+        info->load_avg_1m  = (float)loads[0];
+        info->load_avg_5m  = (float)loads[1];
         info->load_avg_15m = (float)loads[2];
+    } else {
+        info->load_avg_1m  = 0.0f;
+        info->load_avg_5m  = 0.0f;
+        info->load_avg_15m = 0.0f;
     }
+
+#elif defined(__linux__)
+    #include <stdlib.h>   // getloadavg
+    #include <unistd.h>
+
+    double loads[3] = {0.0, 0.0, 0.0};
+    if (getloadavg(loads, 3) == 3) {
+        info->load_avg_1m  = (float)loads[0];
+        info->load_avg_5m  = (float)loads[1];
+        info->load_avg_15m = (float)loads[2];
+    } else {
+        info->load_avg_1m  = 0.0f;
+        info->load_avg_5m  = 0.0f;
+        info->load_avg_15m = 0.0f;
+    }
+
+#else
+    // Unknown platform: zero everything
+    info->load_avg_1m  = 0.0f;
+    info->load_avg_5m  = 0.0f;
+    info->load_avg_15m = 0.0f;
 #endif
 
-    info->cpu_usage_percent = 0.0f; // requires sampling
+    info->cpu_usage_percent = 0.0f; // Requires runtime sampling on all platforms
 
     return 0;
 }

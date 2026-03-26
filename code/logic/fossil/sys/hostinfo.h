@@ -143,6 +143,57 @@ typedef struct {
     uint64_t boot_time_epoch; // seconds since Unix epoch, 0 if unknown
 } fossil_sys_hostinfo_uptime_t;
 
+// new
+typedef struct {
+    char hostname[128];
+    char primary_ip[64];
+    char mac_address[64];
+    char interface_name[64];
+    int is_up;
+} fossil_sys_hostinfo_network_t;
+
+typedef struct {
+    int pid;
+    int ppid;
+    char executable_path[256];
+    char current_working_dir[256];
+    char process_name[128];
+    int is_elevated; // admin/root
+} fossil_sys_hostinfo_process_t;
+
+typedef struct {
+    uint64_t max_open_files;
+    uint64_t max_processes;
+    uint64_t page_size;
+} fossil_sys_hostinfo_limits_t;
+
+typedef struct {
+    char timezone[64];
+    int utc_offset_seconds;
+    char locale[64];
+} fossil_sys_hostinfo_time_t;
+
+typedef struct {
+    float load_avg_1m;
+    float load_avg_5m;
+    float load_avg_15m;
+    float cpu_usage_percent;
+} fossil_sys_hostinfo_load_t;
+
+typedef struct {
+    char manufacturer[128];
+    char product_name[128];
+    char serial_number[128];
+    char bios_version[128];
+} fossil_sys_hostinfo_hardware_t;
+
+typedef struct {
+    int display_count;
+    int primary_width;
+    int primary_height;
+    int primary_refresh_rate;
+} fossil_sys_hostinfo_display_t;
+
 /**
  * @brief Retrieves the system uptime information.
  *

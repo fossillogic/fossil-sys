@@ -15,12 +15,6 @@
 
 #include "fossil/sys/framework.h"
 
-// Ensure POSIX functions are available
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 200112L
-#endif
-#include <cstdlib>
-
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Utilities
 // * * * * * * * * * * * * * * * * * * * * * * * *
@@ -70,20 +64,20 @@ FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_set) {
 FOSSIL_TEST(cpp_test_env_cpp_wrapper_exists) {
     std::string key = "FOSSIL_TEST_ENV_CPP_EXISTS";
     setenv(key.c_str(), "1", 1);
-    ASSUME_ITS_TRUE(std::getenv(key.c_str()) != nullptr);
+    ASSUME_ITS_TRUE(getenv(key.c_str()) != nullptr);
     unsetenv(key.c_str());
-    ASSUME_ITS_FALSE(std::getenv(key.c_str()) != nullptr);
+    ASSUME_ITS_FALSE(getenv(key.c_str()) != nullptr);
 }
 
 FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_or) {
     std::string key = "FOSSIL_TEST_ENV_CPP_OR";
     unsetenv(key.c_str());
     std::string fallback = "cpp_fallback";
-    const char* got = std::getenv(key.c_str());
+    const char* got = getenv(key.c_str());
     ASSUME_ITS_EQUAL_CSTR((got ? got : fallback.c_str()), fallback.c_str());
 
     setenv(key.c_str(), "cpp_real", 1);
-    got = std::getenv(key.c_str());
+    got = getenv(key.c_str());
     ASSUME_ITS_EQUAL_CSTR((got ? got : fallback.c_str()), "cpp_real");
     unsetenv(key.c_str());
 }

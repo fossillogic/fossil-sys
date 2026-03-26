@@ -341,6 +341,95 @@ int fossil_sys_hostinfo_get_memory(fossil_sys_hostinfo_memory_t *info);
  */
 int fossil_sys_hostinfo_get_endianness(fossil_sys_hostinfo_endianness_t *info);
 
+/**
+ * @brief Retrieves network information about the host system.
+ *
+ * This function fills the fossil_sys_hostinfo_network_t structure with
+ * details about the primary network interface, including hostname,
+ * IP address, MAC address, interface name, and link status.
+ *
+ * @param[out] info Pointer to a fossil_sys_hostinfo_network_t structure
+ *                  that will be populated with network information.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info);
+
+/**
+ * @brief Retrieves information about the current process.
+ *
+ * This function fills the fossil_sys_hostinfo_process_t structure with
+ * details about the running process, including process ID, parent process ID,
+ * executable path, working directory, process name, and privilege level.
+ *
+ * @param[out] info Pointer to a fossil_sys_hostinfo_process_t structure
+ *                  that will be populated with process information.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int fossil_sys_hostinfo_get_process(fossil_sys_hostinfo_process_t *info);
+
+/**
+ * @brief Retrieves system resource limits.
+ *
+ * This function fills the fossil_sys_hostinfo_limits_t structure with
+ * information about system-imposed limits such as maximum open files,
+ * maximum processes, and memory page size.
+ *
+ * @param[out] info Pointer to a fossil_sys_hostinfo_limits_t structure
+ *                  that will be populated with limits information.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int fossil_sys_hostinfo_get_limits(fossil_sys_hostinfo_limits_t *info);
+
+/**
+ * @brief Retrieves time and locale information.
+ *
+ * This function fills the fossil_sys_hostinfo_time_t structure with
+ * details about the system timezone, UTC offset, and locale settings.
+ *
+ * @param[out] info Pointer to a fossil_sys_hostinfo_time_t structure
+ *                  that will be populated with time and locale information.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int fossil_sys_hostinfo_get_time(fossil_sys_hostinfo_time_t *info);
+
+/**
+ * @brief Retrieves system load and performance metrics.
+ *
+ * This function fills the fossil_sys_hostinfo_load_t structure with
+ * system load averages and CPU usage statistics.
+ *
+ * @param[out] info Pointer to a fossil_sys_hostinfo_load_t structure
+ *                  that will be populated with load information.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int fossil_sys_hostinfo_get_load(fossil_sys_hostinfo_load_t *info);
+
+/**
+ * @brief Retrieves hardware information about the host system.
+ *
+ * This function fills the fossil_sys_hostinfo_hardware_t structure with
+ * details about the system manufacturer, product name, serial number,
+ * and BIOS or firmware version.
+ *
+ * @param[out] info Pointer to a fossil_sys_hostinfo_hardware_t structure
+ *                  that will be populated with hardware information.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int fossil_sys_hostinfo_get_hardware(fossil_sys_hostinfo_hardware_t *info);
+
+/**
+ * @brief Retrieves display information about the host system.
+ *
+ * This function fills the fossil_sys_hostinfo_display_t structure with
+ * details about connected displays, including display count, primary
+ * resolution, and refresh rate.
+ *
+ * @param[out] info Pointer to a fossil_sys_hostinfo_display_t structure
+ *                  that will be populated with display information.
+ * @return 0 on success, or a negative error code on failure.
+ */
+int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info);
+
 #ifdef __cplusplus
 }
 

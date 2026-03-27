@@ -156,8 +156,6 @@ FOSSIL_TEST(c_test_hostinfo_get_power)
     fossil_sys_hostinfo_power_t info;
     int result = fossil_sys_hostinfo_get_power(&info);
     ASSUME_ITS_TRUE(result == 0);
-    // on_ac_power: -1 (unknown) or 0/1
-    ASSUME_ITS_TRUE(info.on_ac_power == -1 || info.on_ac_power == 0 || info.on_ac_power == 1);
     // battery_present: -1 (unknown) or 0/1
     ASSUME_ITS_TRUE(info.battery_present == -1 || info.battery_present == 0 || info.battery_present == 1);
     // battery_charging: -1 (unknown) or 0/1

@@ -921,11 +921,16 @@ void fossil_sys_strcpy(char *dst, size_t dst_sz, const char *src) {
         dst[0] = '\0';
         return;
     }
-    strncpy(dst, src, dst_sz - 1);
-    dst[dst_sz - 1] = '\0';
-    // Ensure null-termination even if src is longer than dst_sz - 1
-    if (dst_sz > 0)
-        dst[dst_sz - 1] = '\0';
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+    // Use strlcpy if available
+    strlcpy(dst, src, dst_sz);
+#else
+    size_t i;
+    for (i = 0; i + 1 < dst_sz && src[i]; ++i) {
+        dst[i] = src[i];
+    }
+    dst[i] = '\0';
+#endif
 }
 
 static int fossil_detect_container_linux(char *type, size_t type_sz) {

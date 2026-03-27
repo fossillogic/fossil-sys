@@ -29,18 +29,19 @@
 
 static char fossil_dyn_error_buf[256];
 
-static void fossil_dyn_set_error(const char* msg)
+static void fossil_dyn_set_error(const char *msg)
 {
-    if (!msg) msg = "unknown dynamic loader error";
-    strncpy(fossil_dyn_error_buf, msg, sizeof(fossil_dyn_error_buf)-1);
-    fossil_dyn_error_buf[sizeof(fossil_dyn_error_buf)-1] = '\0';
+    if (!msg)
+        msg = "unknown dynamic loader error";
+    strncpy(fossil_dyn_error_buf, msg, sizeof(fossil_dyn_error_buf) - 1);
+    fossil_dyn_error_buf[sizeof(fossil_dyn_error_buf) - 1] = '\0';
 }
 
 /* ------------------------------------------------------
  * Platform helpers
  * ----------------------------------------------------- */
 
-static const char* fossil_dyn_default_ext(void)
+static const char *fossil_dyn_default_ext(void)
 {
 #if defined(_WIN32) || defined(_WIN64)
     return ".dll";
@@ -53,17 +54,20 @@ static const char* fossil_dyn_default_ext(void)
 
 /* If path has no extension, append platform default */
 static void fossil_dyn_resolve_path(
-    const char* in,
-    char* out,
+    const char *in,
+    char *out,
     size_t out_size)
 {
     if (!in || !out || out_size == 0)
         return;
 
-    const char* dot = strrchr(in, '.');
-    if (dot) {
+    const char *dot = strrchr(in, '.');
+    if (dot)
+    {
         snprintf(out, out_size, "%s", in);
-    } else {
+    }
+    else
+    {
         snprintf(out, out_size, "%s%s", in, fossil_dyn_default_ext());
     }
 }
@@ -77,8 +81,8 @@ static void fossil_dyn_resolve_path(
 #include <windows.h>
 
 bool fossil_sys_dynamic_load(
-    const char* path,
-    fossil_sys_dynamic_lib_t* out_lib)
+    const char *path,
+    fossil_sys_dynamic_lib_t *out_lib)
 {
     if (!path || !out_lib)
         return false;
@@ -87,10 +91,11 @@ bool fossil_sys_dynamic_load(
     fossil_dyn_resolve_path(path, resolved, sizeof(resolved));
 
     HMODULE h = LoadLibraryA(resolved);
-    if (!h) {
+    if (!h)
+    {
         FormatMessageA(
             FORMAT_MESSAGE_FROM_SYSTEM |
-            FORMAT_MESSAGE_IGNORE_INSERTS,
+                FORMAT_MESSAGE_IGNORE_INSERTS,
             NULL,
             GetLastError(),
             0,
@@ -100,19 +105,20 @@ bool fossil_sys_dynamic_load(
         return false;
     }
 
-    out_lib->id     = resolved;
-    out_lib->path   = resolved;
+    out_lib->id = resolved;
+    out_lib->path = resolved;
     out_lib->handle = h;
     out_lib->status = 1;
     return true;
 }
 
-bool fossil_sys_dynamic_unload(fossil_sys_dynamic_lib_t* lib)
+bool fossil_sys_dynamic_unload(fossil_sys_dynamic_lib_t *lib)
 {
     if (!lib || !lib->handle)
         return false;
 
-    if (!FreeLibrary(lib->handle)) {
+    if (!FreeLibrary(lib->handle))
+    {
         fossil_dyn_set_error("FreeLibrary failed");
         return false;
     }
@@ -122,32 +128,33 @@ bool fossil_sys_dynamic_unload(fossil_sys_dynamic_lib_t* lib)
     return true;
 }
 
-void* fossil_sys_dynamic_symbol(
-    fossil_sys_dynamic_lib_t* lib,
-    const char* symbol_name)
+void *fossil_sys_dynamic_symbol(
+    fossil_sys_dynamic_lib_t *lib,
+    const char *symbol_name)
 {
     if (!lib || !lib->handle || !symbol_name)
         return NULL;
 
     FARPROC proc = GetProcAddress(lib->handle, symbol_name);
-    if (!proc) {
+    if (!proc)
+    {
         fossil_dyn_set_error("symbol not found");
         return NULL;
     }
 
     /* legal conversion via memcpy avoids pedantic UB */
-    void* out = NULL;
+    void *out = NULL;
     memcpy(&out, &proc, sizeof(out));
     return out;
 }
 
 bool fossil_sys_dynamic_is_loaded(
-    const fossil_sys_dynamic_lib_t* lib)
+    const fossil_sys_dynamic_lib_t *lib)
 {
     return lib && lib->handle != NULL && lib->status == 1;
 }
 
-const char* fossil_sys_dynamic_error(void)
+const char *fossil_sys_dynamic_error(void)
 {
     return fossil_dyn_error_buf;
 }
@@ -161,8 +168,8 @@ const char* fossil_sys_dynamic_error(void)
 #include <dlfcn.h>
 
 bool fossil_sys_dynamic_load(
-    const char* path,
-    fossil_sys_dynamic_lib_t* out_lib)
+    const char *path,
+    fossil_sys_dynamic_lib_t *out_lib)
 {
     if (!path || !out_lib)
         return false;
@@ -172,25 +179,27 @@ bool fossil_sys_dynamic_load(
 
     dlerror();
 
-    void* h = dlopen(resolved, RTLD_NOW | RTLD_LOCAL);
-    if (!h) {
+    void *h = dlopen(resolved, RTLD_NOW | RTLD_LOCAL);
+    if (!h)
+    {
         fossil_dyn_set_error(dlerror());
         return false;
     }
 
-    out_lib->id     = resolved;
-    out_lib->path   = resolved;
+    out_lib->id = resolved;
+    out_lib->path = resolved;
     out_lib->handle = h;
     out_lib->status = 1;
     return true;
 }
 
-bool fossil_sys_dynamic_unload(fossil_sys_dynamic_lib_t* lib)
+bool fossil_sys_dynamic_unload(fossil_sys_dynamic_lib_t *lib)
 {
     if (!lib || !lib->handle)
         return false;
 
-    if (dlclose(lib->handle) != 0) {
+    if (dlclose(lib->handle) != 0)
+    {
         fossil_dyn_set_error(dlerror());
         return false;
     }
@@ -200,19 +209,20 @@ bool fossil_sys_dynamic_unload(fossil_sys_dynamic_lib_t* lib)
     return true;
 }
 
-void* fossil_sys_dynamic_symbol(
-    fossil_sys_dynamic_lib_t* lib,
-    const char* symbol_name)
+void *fossil_sys_dynamic_symbol(
+    fossil_sys_dynamic_lib_t *lib,
+    const char *symbol_name)
 {
     if (!lib || !lib->handle || !symbol_name)
         return NULL;
 
     dlerror();
 
-    void* sym = dlsym(lib->handle, symbol_name);
+    void *sym = dlsym(lib->handle, symbol_name);
 
-    const char* err = dlerror();
-    if (err) {
+    const char *err = dlerror();
+    if (err)
+    {
         fossil_dyn_set_error(err);
         return NULL;
     }
@@ -221,12 +231,12 @@ void* fossil_sys_dynamic_symbol(
 }
 
 bool fossil_sys_dynamic_is_loaded(
-    const fossil_sys_dynamic_lib_t* lib)
+    const fossil_sys_dynamic_lib_t *lib)
 {
     return lib && lib->handle != NULL && lib->status == 1;
 }
 
-const char* fossil_sys_dynamic_error(void)
+const char *fossil_sys_dynamic_error(void)
 {
     return fossil_dyn_error_buf;
 }

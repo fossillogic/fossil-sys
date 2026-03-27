@@ -26,12 +26,14 @@
 FOSSIL_SUITE(cpp_env_suite);
 
 // Setup function for the test suite
-FOSSIL_SETUP(cpp_env_suite) {
+FOSSIL_SETUP(cpp_env_suite)
+{
     // Setup code here
 }
 
 // Teardown function for the test suite
-FOSSIL_TEARDOWN(cpp_env_suite) {
+FOSSIL_TEARDOWN(cpp_env_suite)
+{
     // Teardown code here
 }
 
@@ -44,7 +46,8 @@ FOSSIL_TEARDOWN(cpp_env_suite) {
 // * * * * * * * * * * * * * * * * * * * * * * * *
 
 // ** Test fossil::sys::Env C++ wrapper **
-FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_set) {
+FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_set)
+{
     using fossil::sys::Env;
     std::string key = "FOSSIL_TEST_ENV_CPP";
     std::string value = "cpp_value";
@@ -61,7 +64,8 @@ FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_set) {
     ASSUME_ITS_EQUAL_CSTR(got.c_str(), "");
 }
 
-FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_int) {
+FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_int)
+{
     using fossil::sys::Env;
     std::string key = "FOSSIL_TEST_ENV_CPP_INT";
     Env::set(key, "123");
@@ -77,7 +81,8 @@ FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_int) {
     ASSUME_ITS_EQUAL_I32(val, 456);
 }
 
-FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_bool) {
+FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_bool)
+{
     using fossil::sys::Env;
     std::string key = "FOSSIL_TEST_ENV_CPP_BOOL";
     Env::set(key, "1");
@@ -97,20 +102,22 @@ FOSSIL_TEST(cpp_test_env_cpp_wrapper_get_bool) {
     Env::set(key, "");
 }
 
-FOSSIL_TEST(cpp_test_env_cpp_wrapper_foreach) {
+FOSSIL_TEST(cpp_test_env_cpp_wrapper_foreach)
+{
     using fossil::sys::Env;
     int count = 0;
-    Env::foreach_var([&count](const std::string& key, const std::string& value) {
+    Env::foreach_var([&count](const std::string &key, const std::string &value)
+                     {
         if (!key.empty() && !value.empty()) ++count;
-        return count >= 10 ? 1 : 0;
-    });
+        return count >= 10 ? 1 : 0; });
     ASSUME_ITS_TRUE(count > 0);
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Pool
 // * * * * * * * * * * * * * * * * * * * * * * * *
-FOSSIL_TEST_GROUP(cpp_env_tests) {
+FOSSIL_TEST_GROUP(cpp_env_tests)
+{
     FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_get_set);
     FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_get_int);
     FOSSIL_TEST_ADD(cpp_env_suite, cpp_test_env_cpp_wrapper_get_bool);

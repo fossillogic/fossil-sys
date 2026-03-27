@@ -34,12 +34,14 @@
 FOSSIL_SUITE(c_null_suite);
 
 // Setup function for the test suite
-FOSSIL_SETUP(c_null_suite) {
+FOSSIL_SETUP(c_null_suite)
+{
     // Setup code here
 }
 
 // Teardown function for the test suite
-FOSSIL_TEARDOWN(c_null_suite) {
+FOSSIL_TEARDOWN(c_null_suite)
+{
     // Teardown code here
 }
 
@@ -52,20 +54,23 @@ FOSSIL_TEARDOWN(c_null_suite) {
 // * * * * * * * * * * * * * * * * * * * * * * * *
 
 // Ensure the necessary macros and types are defined
-FOSSIL_TEST(c_test_cnull_definition) {
+FOSSIL_TEST(c_test_cnull_definition)
+{
     ASSUME_ITS_EQUAL_PTR(cnull, (void *)(0));
     ASSUME_ITS_EQUAL_PTR(cnullptr, (void *)(0));
 }
 
 // ** Test cnullify Macro **
-FOSSIL_TEST(c_test_cnullify) {
+FOSSIL_TEST(c_test_cnullify)
+{
     void *ptr = (void *)1;
     cnullify(ptr);
     ASSUME_ITS_EQUAL_PTR(ptr, cnull);
 }
 
 // ** Test cnotnull Macro **
-FOSSIL_TEST(c_test_cnotnull) {
+FOSSIL_TEST(c_test_cnotnull)
+{
     void *ptr = (void *)1;
     ASSUME_ITS_TRUE(cnotnull(ptr));
     cnullify(ptr);
@@ -73,7 +78,8 @@ FOSSIL_TEST(c_test_cnotnull) {
 }
 
 // ** Test cunwrap_or Macro **
-FOSSIL_TEST(c_test_cunwrap_or) {
+FOSSIL_TEST(c_test_cunwrap_or)
+{
     void *ptr = (void *)1;
     void *default_ptr = (void *)99;
     ASSUME_ITS_EQUAL_PTR(cunwrap_or(ptr, default_ptr), ptr);
@@ -82,7 +88,8 @@ FOSSIL_TEST(c_test_cunwrap_or) {
 }
 
 // ** Test cunwrap Macro **
-FOSSIL_TEST(c_test_cunwrap) {
+FOSSIL_TEST(c_test_cunwrap)
+{
     void *ptr = (void *)1;
     ASSUME_ITS_EQUAL_PTR(cunwrap(ptr), ptr);
     // cnullify(ptr);
@@ -90,17 +97,19 @@ FOSSIL_TEST(c_test_cunwrap) {
 }
 
 // ** Test csafe_cast Macro **
-FOSSIL_TEST(c_test_csafe_cast) {
+FOSSIL_TEST(c_test_csafe_cast)
+{
     void *ptr = (void *)1;
     int *casted_ptr = csafe_cast(int *, ptr);
     ASSUME_ITS_EQUAL_PTR(casted_ptr, (int *)ptr);
     cnullify(ptr);
     casted_ptr = csafe_cast(int *, ptr);
-    ASSUME_ITS_EQUAL_PTR(casted_ptr, cnull);  // Should return cnull when the input is cnull
+    ASSUME_ITS_EQUAL_PTR(casted_ptr, cnull); // Should return cnull when the input is cnull
 }
 
 // ** Test cnullable and cnonnull Attributes **
-FOSSIL_TEST(c_test_nullable_nonnull) {
+FOSSIL_TEST(c_test_nullable_nonnull)
+{
     // These tests are intended to verify that nullable and nonnull attributes are handled by the compiler, so the actual test might be compiler-specific.
     void *ptr = cnull;
     ASSUME_ITS_TRUE(cnotnull(ptr) == 0);
@@ -109,7 +118,8 @@ FOSSIL_TEST(c_test_nullable_nonnull) {
 }
 
 // ** Test coptional Macro and cnone() and csome() **
-FOSSIL_TEST(c_test_coptional) {
+FOSSIL_TEST(c_test_coptional)
+{
     void *ptr = (void *)1;
     ASSUME_ITS_EQUAL_PTR(c_optional(ptr), ptr);
     cnullify(ptr);
@@ -117,18 +127,20 @@ FOSSIL_TEST(c_test_coptional) {
 }
 
 // ** Test COption structure and cunwrap_option Macro **
-FOSSIL_TEST(c_test_cunwrap_option) {
+FOSSIL_TEST(c_test_cunwrap_option)
+{
     COption some_option = csome((void *)1);
     COption none_option = cnone();
     ASSUME_ITS_EQUAL_PTR(cunwrap_option(some_option), (void *)1);
-    
+
     // Uncommenting the following line will trigger panic due to unwrapping a None value
     // ASSUME_ITS_EQUAL_PTR(cunwrap_option(none_option), cnull); // Should panic in actual code
     cunused(none_option); // avoid unused error
 }
 
 // ** Test cunwrap_or_option Macro **
-FOSSIL_TEST(c_test_cunwrap_or_option) {
+FOSSIL_TEST(c_test_cunwrap_or_option)
+{
     COption some_option = csome((void *)1);
     COption none_option = cnone();
     ASSUME_ITS_EQUAL_PTR(cunwrap_or_option(some_option, (void *)99), (void *)1);
@@ -136,7 +148,8 @@ FOSSIL_TEST(c_test_cunwrap_or_option) {
 }
 
 // ** Test cdrop Macro **
-FOSSIL_TEST(c_test_cdrop) {
+FOSSIL_TEST(c_test_cdrop)
+{
     void *ptr = (void *)1;
     cdrop(ptr);
     ASSUME_ITS_EQUAL_PTR(ptr, cnull);
@@ -145,7 +158,8 @@ FOSSIL_TEST(c_test_cdrop) {
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Pool
 // * * * * * * * * * * * * * * * * * * * * * * * *
-FOSSIL_TEST_GROUP(c_nullptr_tests) {
+FOSSIL_TEST_GROUP(c_nullptr_tests)
+{
     FOSSIL_TEST_ADD(c_null_suite, c_test_cnull_definition);
     FOSSIL_TEST_ADD(c_null_suite, c_test_cnullify);
     FOSSIL_TEST_ADD(c_null_suite, c_test_cnotnull);

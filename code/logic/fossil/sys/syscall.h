@@ -29,36 +29,37 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* 
- * Function to execute a system command.
- * This function takes a command string as input and executes it using the 
- * system's command processor. The return value is the exit status of the 
- * command.
- */
+/*
+* Function to execute a system command.
+* This function takes a command string as input and executes it using the
+* system's command processor. The return value is the exit status of the
+* command.
+*/
 int fossil_sys_call_execute(const char *command);
 
-/* 
- * Function to get the current process ID.
- * This function returns the process ID of the calling process. 
- * The process ID is a unique identifier for the process.
- */
+/*
+* Function to get the current process ID.
+* This function returns the process ID of the calling process.
+* The process ID is a unique identifier for the process.
+*/
 int fossil_sys_call_getpid(void);
 
-/* 
- * Function to sleep for a specified number of milliseconds.
- * This function suspends the execution of the calling thread for the specified 
- * number of milliseconds.
- */
+/*
+* Function to sleep for a specified number of milliseconds.
+* This function suspends the execution of the calling thread for the specified
+* number of milliseconds.
+*/
 void fossil_sys_call_sleep(int milliseconds);
 
-/* 
- * Function to create a new file.
- * This function creates a new file with the specified filename. 
- * The return value is 0 on success, or a negative error code on failure.
- */
+/*
+* Function to create a new file.
+* This function creates a new file with the specified filename.
+* The return value is 0 on success, or a negative error code on failure.
+*/
 int fossil_sys_call_create_file(const char *filename);
 
 /**
@@ -168,174 +169,183 @@ int fossil_sys_call_execute_capture(const char *command, char *buffer, size_t si
 /**
  * Fossil namespace.
  */
-namespace fossil {
+namespace fossil::sys
+{
 
     /**
-     * System namespace.
+     * Syscall class.
      */
-    namespace sys {
+    class Syscall
+    {
+    public:
+        /**
+         * Execute a system command.
+         *
+         * @param command The command to execute
+         * @return The return value of the system command.
+         */
+        static int execute(const std::string &command)
+        {
+            return fossil_sys_call_execute(command.c_str());
+        }
 
         /**
-         * Syscall class.
+         * Get the current process ID.
+         *
+         * @return The current process ID.
          */
-        class Syscall {
-        public:
-            /**
-             * Execute a system command.
-             *
-             * @param command The command to execute
-             * @return The return value of the system command.
-             */
-            static int execute(const std::string &command) {
-                return fossil_sys_call_execute(command.c_str());
-            }
+        static int getpid()
+        {
+            return fossil_sys_call_getpid();
+        }
 
-            /**
-             * Get the current process ID.
-             *
-             * @return The current process ID.
-             */
-            static int getpid() {
-                return fossil_sys_call_getpid();
-            }
+        /**
+         * Sleep for a specified number of milliseconds.
+         *
+         * @param milliseconds The number of milliseconds to sleep.
+         */
+        static void sleep(int milliseconds)
+        {
+            fossil_sys_call_sleep(milliseconds);
+        }
 
-            /**
-             * Sleep for a specified number of milliseconds.
-             *
-             * @param milliseconds The number of milliseconds to sleep.
-             */
-            static void sleep(int milliseconds) {
-                fossil_sys_call_sleep(milliseconds);
-            }
+        /**
+         * Create a new file.
+         *
+         * @param filename The name of the file to create.
+         * @return 0 on success, or a negative error code on failure.
+         */
+        static int create_file(const std::string &filename)
+        {
+            return fossil_sys_call_create_file(filename.c_str());
+        }
 
-            /**
-             * Create a new file.
-             *
-             * @param filename The name of the file to create.
-             * @return 0 on success, or a negative error code on failure.
-             */
-            static int create_file(const std::string &filename) {
-                return fossil_sys_call_create_file(filename.c_str());
-            }
+        /**
+         * Delete a file.
+         *
+         * @param filename Path to the file to delete.
+         * @return 0 on success, negative error code on failure.
+         */
+        static int delete_file(const std::string &filename)
+        {
+            return fossil_sys_call_delete_file(filename.c_str());
+        }
 
-            /**
-             * Delete a file.
-             *
-             * @param filename Path to the file to delete.
-             * @return 0 on success, negative error code on failure.
-             */
-            static int delete_file(const std::string &filename) {
-                return fossil_sys_call_delete_file(filename.c_str());
-            }
+        /**
+         * Check if a file exists.
+         *
+         * @param filename Path to the file.
+         * @return 1 if the file exists, 0 if not.
+         */
+        static int file_exists(const std::string &filename)
+        {
+            return fossil_sys_call_file_exists(filename.c_str());
+        }
 
-            /**
-             * Check if a file exists.
-             *
-             * @param filename Path to the file.
-             * @return 1 if the file exists, 0 if not.
-             */
-            static int file_exists(const std::string &filename) {
-                return fossil_sys_call_file_exists(filename.c_str());
-            }
+        /**
+         * Create a directory.
+         *
+         * @param dirname Path of the directory to create.
+         * @return 0 on success, negative error code on failure.
+         */
+        static int create_directory(const std::string &dirname)
+        {
+            return fossil_sys_call_create_directory(dirname.c_str());
+        }
 
-            /**
-             * Create a directory.
-             *
-             * @param dirname Path of the directory to create.
-             * @return 0 on success, negative error code on failure.
-             */
-            static int create_directory(const std::string &dirname) {
-                return fossil_sys_call_create_directory(dirname.c_str());
-            }
+        /**
+         * Delete a directory (optionally recursive).
+         *
+         * @param dirname Path of the directory to delete.
+         * @param recursive If non-zero, delete all contents recursively.
+         * @return 0 on success, negative error code on failure.
+         */
+        static int delete_directory(const std::string &dirname, int recursive)
+        {
+            return fossil_sys_call_delete_directory(dirname.c_str(), recursive);
+        }
 
-            /**
-             * Delete a directory (optionally recursive).
-             *
-             * @param dirname Path of the directory to delete.
-             * @param recursive If non-zero, delete all contents recursively.
-             * @return 0 on success, negative error code on failure.
-             */
-            static int delete_directory(const std::string &dirname, int recursive) {
-                return fossil_sys_call_delete_directory(dirname.c_str(), recursive);
-            }
+        /**
+         * Get the current working directory.
+         *
+         * @param buffer Buffer to receive the current path.
+         * @param size Size of the buffer.
+         * @return 0 on success, negative error code on failure.
+         */
+        static int getcwd(std::string *buffer, size_t size)
+        {
+            return fossil_sys_call_getcwd(buffer->data(), size);
+        }
 
-            /**
-             * Get the current working directory.
-             *
-             * @param buffer Buffer to receive the current path.
-             * @param size Size of the buffer.
-             * @return 0 on success, negative error code on failure.
-             */
-            static int getcwd(std::string *buffer, size_t size) {
-                return fossil_sys_call_getcwd(buffer->data(), size);
-            }
+        /**
+         * Change the current working directory.
+         *
+         * @param path Path to set as current working directory.
+         * @return 0 on success, negative error code on failure.
+         */
+        static int chdir(const std::string &path)
+        {
+            return fossil_sys_call_chdir(path.c_str());
+        }
 
-            /**
-             * Change the current working directory.
-             *
-             * @param path Path to set as current working directory.
-             * @return 0 on success, negative error code on failure.
-             */
-            static int chdir(const std::string &path) {
-                return fossil_sys_call_chdir(path.c_str());
-            }
+        /**
+         * List files in a directory.
+         *
+         * @param dirname Path to the directory.
+         * @param out_list Pointer to array of strings (allocated by function).
+         * @param out_count Pointer to receive the number of entries.
+         * @return 0 on success, negative error code on failure.
+         */
+        static int list_directory(const std::string &dirname, char ***out_list, size_t *out_count)
+        {
+            return fossil_sys_call_list_directory(dirname.c_str(), out_list, out_count);
+        }
 
-            /**
-             * List files in a directory.
-             *
-             * @param dirname Path to the directory.
-             * @param out_list Pointer to array of strings (allocated by function).
-             * @param out_count Pointer to receive the number of entries.
-             * @return 0 on success, negative error code on failure.
-             */
-            static int list_directory(const std::string &dirname, char ***out_list, size_t *out_count) {
-                return fossil_sys_call_list_directory(dirname.c_str(), out_list, out_count);
-            }
+        /**
+         * Check if a path is a directory.
+         *
+         * @param path Path to check.
+         * @return 1 if directory, 0 if not.
+         */
+        static int is_directory(const std::string &path)
+        {
+            return fossil_sys_call_is_directory(path.c_str());
+        }
 
-            /**
-             * Check if a path is a directory.
-             *
-             * @param path Path to check.
-             * @return 1 if directory, 0 if not.
-             */
-            static int is_directory(const std::string &path) {
-                return fossil_sys_call_is_directory(path.c_str());
-            }
+        /**
+         * Check if a path is a regular file.
+         *
+         * @param path Path to check.
+         * @return 1 if regular file, 0 if not.
+         */
+        static int is_file(const std::string &path)
+        {
+            return fossil_sys_call_is_file(path.c_str());
+        }
 
-            /**
-             * Check if a path is a regular file.
-             *
-             * @param path Path to check.
-             * @return 1 if regular file, 0 if not.
-             */
-            static int is_file(const std::string &path) {
-                return fossil_sys_call_is_file(path.c_str());
-            }
+        /**
+         * Terminate the current process.
+         *
+         * @param exit_code Exit code to return to the operating system.
+         */
+        static void exit(int exit_code)
+        {
+            fossil_sys_call_exit(exit_code);
+        }
 
-            /**
-             * Terminate the current process.
-             *
-             * @param exit_code Exit code to return to the operating system.
-             */
-            static void exit(int exit_code) {
-                fossil_sys_call_exit(exit_code);
-            }
-
-            /**
-             * Execute a command and capture output.
-             *
-             * @param command Command string to execute.
-             * @param buffer Buffer to store output.
-             * @param size Size of the buffer.
-             * @return 0 on success, negative error code on failure.
-             */
-            static int execute_capture(const std::string &command, std::string *buffer) {
-                return fossil_sys_call_execute_capture(command.c_str(), buffer->data(), buffer->size());
-            }
-
-        };
-
-    }
+        /**
+         * Execute a command and capture output.
+         *
+         * @param command Command string to execute.
+         * @param buffer Buffer to store output.
+         * @param size Size of the buffer.
+         * @return 0 on success, negative error code on failure.
+         */
+        static int execute_capture(const std::string &command, std::string *buffer)
+        {
+            return fossil_sys_call_execute_capture(command.c_str(), buffer->data(), buffer->size());
+        }
+    };
 
 }
 

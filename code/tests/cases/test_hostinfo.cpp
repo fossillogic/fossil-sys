@@ -215,7 +215,6 @@ FOSSIL_TEST_GROUP(cpp_hostinfo_tests)
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_power);
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_network);
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_process);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_limits);
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_time);
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_hardware);
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_display);

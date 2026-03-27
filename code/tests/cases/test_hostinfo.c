@@ -146,7 +146,8 @@ FOSSIL_TEST(c_test_hostinfo_get_gpu)
     fossil_sys_hostinfo_gpu_t info;
     int result = fossil_sys_hostinfo_get_gpu(&info);
     ASSUME_ITS_TRUE(result == 0);
-    // ASSUME_ITS_TRUE(strlen(info.vendor) > 0);
+    ASSUME_ITS_TRUE(strlen(info.vendor) > 0);
+    ASSUME_ITS_TRUE(strlen(info.name) > 0);
     ASSUME_ITS_TRUE(strlen(info.driver_version) > 0);
     // Memory fields may be zero, but should not be negative (unsigned, so always >= 0)
 }

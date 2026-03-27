@@ -70,6 +70,8 @@
 #include <initguid.h>
 #elif defined(__APPLE__)
 #include <IOKit/IOKitLib.h>
+#include <IOKit/ps/IOPowerSources.h>
+#include <IOKit/ps/IOPSKeys.h>
 #include <IOKit/graphics/IOGraphicsLib.h>
 #include <CoreFoundation/CoreFoundation.h>
 #endif
@@ -481,13 +483,76 @@ int fossil_sys_hostinfo_get_power(fossil_sys_hostinfo_power_t *info) {
     info->battery_seconds_left = (status.BatteryLifeTime != (DWORD)-1) ? (int)status.BatteryLifeTime : -1;
 
 #elif defined(__APPLE__)
-    // On macOS, use IOKit (not available by default in C, requires linking with -framework IOKit)
-    // Fallback: set unknowns
-    info->on_ac_power = -1;
-    info->battery_present = -1;
-    info->battery_charging = -1;
-    info->battery_percentage = -1;
-    info->battery_seconds_left = -1;
+    // On macOS, use IOKit to get battery info
+    CFTypeRef infoRef = IOPSCopyPowerSourcesInfo();
+    if (!infoRef) {
+        info->on_ac_power = -1;
+        info->battery_present = -1;
+        info->battery_charging = -1;
+        info->battery_percentage = -1;
+        info->battery_seconds_left = -1;
+    } else {
+        CFArrayRef powerSourcesList = IOPSCopyPowerSourcesList(infoRef);
+        if (!powerSourcesList || CFArrayGetCount(powerSourcesList) == 0) {
+            info->on_ac_power = -1;
+            info->battery_present = 0;
+            info->battery_charging = -1;
+            info->battery_percentage = -1;
+            info->battery_seconds_left = -1;
+        } else {
+            info->battery_present = 1;
+            CFDictionaryRef ps = IOPSGetPowerSourceDescription(infoRef, CFArrayGetValueAtIndex(powerSourcesList, 0));
+            if (ps) {
+                CFStringRef psType = CFDictionaryGetValue(ps, CFSTR(kIOPSTypeKey));
+                if (psType && CFStringCompare(psType, CFSTR(kIOPSInternalBatteryType), 0) == kCFCompareEqualTo) {
+                    // AC Power
+                    CFStringRef powerSourceState = CFDictionaryGetValue(ps, CFSTR(kIOPSPowerSourceStateKey));
+                    if (powerSourceState && CFStringCompare(powerSourceState, CFSTR(kIOPSACPowerValue), 0) == kCFCompareEqualTo)
+                        info->on_ac_power = 1;
+                    else
+                        info->on_ac_power = 0;
+
+                    // Charging
+                    CFBooleanRef charging = CFDictionaryGetValue(ps, CFSTR(kIOPSIsChargingKey));
+                    if (charging)
+                        info->battery_charging = CFBooleanGetValue(charging) ? 1 : 0;
+                    else
+                        info->battery_charging = -1;
+
+                    // Percentage
+                    CFNumberRef percent = CFDictionaryGetValue(ps, CFSTR(kIOPSCurrentCapacityKey));
+                    CFNumberRef max = CFDictionaryGetValue(ps, CFSTR(kIOPSMaxCapacityKey));
+                    int cur = 0, maxcap = 0;
+                    if (percent && max && CFNumberGetValue(percent, kCFNumberIntType, &cur) && CFNumberGetValue(max, kCFNumberIntType, &maxcap) && maxcap > 0)
+                        info->battery_percentage = (int)((cur * 100) / maxcap);
+                    else
+                        info->battery_percentage = -1;
+
+                    // Time remaining
+                    CFNumberRef timeToEmpty = CFDictionaryGetValue(ps, CFSTR(kIOPSTimeToEmptyKey));
+                    int secs = -1;
+                    if (timeToEmpty && CFNumberGetValue(timeToEmpty, kCFNumberIntType, &secs))
+                        info->battery_seconds_left = secs >= 0 ? secs * 60 : -1;
+                    else
+                        info->battery_seconds_left = -1;
+                } else {
+                    info->on_ac_power = -1;
+                    info->battery_present = 0;
+                    info->battery_charging = -1;
+                    info->battery_percentage = -1;
+                    info->battery_seconds_left = -1;
+                }
+            } else {
+                info->on_ac_power = -1;
+                info->battery_present = 0;
+                info->battery_charging = -1;
+                info->battery_percentage = -1;
+                info->battery_seconds_left = -1;
+            }
+        }
+        if (powerSourcesList) CFRelease(powerSourcesList);
+        CFRelease(infoRef);
+    }
 #else
     // On Linux, try to read from /sys/class/power_supply
     FILE *fp;

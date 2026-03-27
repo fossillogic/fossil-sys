@@ -67,7 +67,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <dxgi.h>       // DirectX Graphics Infrastructure
-#include <comdef.h>
+// #include <comdef.h>
 #include <wrl/client.h>
 #elif defined(__APPLE__)
 #include <IOKit/IOKitLib.h>
@@ -1198,25 +1198,33 @@ int fossil_sys_hostinfo_get_hardware(fossil_sys_hostinfo_hardware_t *info) {
 
     fp = fopen("/sys/class/dmi/id/sys_vendor", "r");
     if (fp) {
-        fgets(info->manufacturer, sizeof(info->manufacturer), fp);
+        if (fgets(info->manufacturer, sizeof(info->manufacturer), fp) == NULL) {
+            info->manufacturer[0] = '\0';
+        }
         fclose(fp);
     }
 
     fp = fopen("/sys/class/dmi/id/product_name", "r");
     if (fp) {
-        fgets(info->product_name, sizeof(info->product_name), fp);
+        if (fgets(info->product_name, sizeof(info->product_name), fp) == NULL) {
+            info->product_name[0] = '\0';
+        }
         fclose(fp);
     }
 
     fp = fopen("/sys/class/dmi/id/product_serial", "r");
     if (fp) {
-        fgets(info->serial_number, sizeof(info->serial_number), fp);
+        if (fgets(info->serial_number, sizeof(info->serial_number), fp) == NULL) {
+            info->serial_number[0] = '\0';
+        }
         fclose(fp);
     }
 
     fp = fopen("/sys/class/dmi/id/bios_version", "r");
     if (fp) {
-        fgets(info->bios_version, sizeof(info->bios_version), fp);
+        if (fgets(info->bios_version, sizeof(info->bios_version), fp) == NULL) {
+            info->bios_version[0] = '\0';
+        }
         fclose(fp);
     }
 #else

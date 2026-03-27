@@ -22,7 +22,7 @@ else
     winsock_dep = []
     bcrypt_dep  = []
     dxgi_dep    = []
-    apple_dep   = dependency('appleframeworks', modules : ['foundation', 'iokit'], required: false)
+    apple_dep   = dependency('appleframeworks', modules : ['Foundation', 'UIKit'], required: false)
 endif
 
 fossil_sys_lib = library('fossil_sys',

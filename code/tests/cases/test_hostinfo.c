@@ -203,7 +203,7 @@ FOSSIL_TEST(c_test_hostinfo_get_time)
     ASSUME_ITS_TRUE(strlen(info.timezone) > 0);
     ASSUME_ITS_TRUE(strlen(info.locale) > 0);
     // UTC offset can be negative, zero, or positive
-    ASSUME_ITS_TRUE(info.utc_offset_minutes >= -720 && info.utc_offset_minutes <= 840);
+    ASSUME_ITS_TRUE(info.utc_offset_seconds >= -43200 && info.utc_offset_seconds <= 50400);
 }
 
 FOSSIL_TEST(c_test_hostinfo_get_hardware)

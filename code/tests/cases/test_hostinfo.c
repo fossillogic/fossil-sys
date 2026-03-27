@@ -249,6 +249,12 @@ FOSSIL_TEST_GROUP(c_hostinfo_tests)
     FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_cpu);
     FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_gpu);
     FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_power);
+    FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_network);
+    FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_process);
+    FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_limits);
+    FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_time);
+    FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_hardware);
+    FOSSIL_TEST_ADD(c_hostinfo_suite, c_test_hostinfo_get_display);
 
     FOSSIL_TEST_REGISTER(c_hostinfo_suite);
 }

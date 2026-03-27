@@ -135,8 +135,6 @@ FOSSIL_TEST(cpp_test_hostinfo_get_gpu)
     ASSUME_ITS_TRUE(strlen(info.vendor) > 0);
     // Driver version should not be empty (filled with "Unknown" if not detected)
     ASSUME_ITS_TRUE(strlen(info.driver_version) > 0);
-    // Memory fields may be zero, but should not be negative (unsigned, so always >= 0)
-    ASSUME_ITS_TRUE(info.memory_total >= 0);
 }
 
 FOSSIL_TEST(cpp_test_hostinfo_get_power)

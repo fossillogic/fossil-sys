@@ -12,10 +12,17 @@ if host_machine.system() == 'windows'
     winsock_dep = cc.find_library('ws2_32', required: true)
     bcrypt_dep  = cc.find_library('bcrypt', required: true)
     dxgi_dep    = cc.find_library('dxgi', required: true)   # <-- added DXGI
+    apple_dep   = []
+elif host_machine.system() == 'linux'
+    winsock_dep = []
+    bcrypt_dep  = []
+    dxgi_dep    = []
+    apple_dep   = []
 else
     winsock_dep = []
     bcrypt_dep  = []
     dxgi_dep    = []
+    apple_dep   = dependency('appleframeworks', modules : ['foundation', 'iokit'], required: false)
 endif
 
 fossil_sys_lib = library('fossil_sys',

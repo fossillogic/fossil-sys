@@ -185,7 +185,7 @@ FOSSIL_TEST(cpp_test_hostinfo_get_time)
     ASSUME_ITS_TRUE(strlen(info.timezone) > 0);
     ASSUME_ITS_TRUE(strlen(info.locale) > 0);
     // UTC offset can be negative, zero, or positive
-    ASSUME_ITS_TRUE(info.utcpp_offset_seconds >= -43200 && info.utcpp_offset_seconds <= 50400);
+    ASSUME_ITS_TRUE(info.utc_offset_seconds >= -43200 && info.utc_offset_seconds <= 50400);
 }
 
 FOSSIL_TEST(cpp_test_hostinfo_get_hardware)

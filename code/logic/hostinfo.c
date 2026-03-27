@@ -922,8 +922,13 @@ void fossil_sys_strcpy(char *dst, size_t dst_sz, const char *src) {
         return;
     }
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
-    // Use strlcpy if available
-    strlcpy(dst, src, dst_sz);
+    // Use strlcpy if available, otherwise fallback to manual copy
+    size_t i;
+    if (dst_sz == 0) return;
+    for (i = 0; i + 1 < dst_sz && src[i]; ++i) {
+        dst[i] = src[i];
+    }
+    dst[i] = '\0';
 #else
     size_t i;
     for (i = 0; i + 1 < dst_sz && src[i]; ++i) {

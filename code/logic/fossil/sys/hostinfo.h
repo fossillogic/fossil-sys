@@ -174,13 +174,6 @@ typedef struct {
 } fossil_sys_hostinfo_time_t;
 
 typedef struct {
-    float load_avg_1m;
-    float load_avg_5m;
-    float load_avg_15m;
-    float cpu_usage_percent;
-} fossil_sys_hostinfo_load_t;
-
-typedef struct {
     char manufacturer[128];
     char product_name[128];
     char serial_number[128];
@@ -391,18 +384,6 @@ int fossil_sys_hostinfo_get_limits(fossil_sys_hostinfo_limits_t *info);
  * @return 0 on success, or a negative error code on failure.
  */
 int fossil_sys_hostinfo_get_time(fossil_sys_hostinfo_time_t *info);
-
-/**
- * @brief Retrieves system load and performance metrics.
- *
- * This function fills the fossil_sys_hostinfo_load_t structure with
- * system load averages and CPU usage statistics.
- *
- * @param[out] info Pointer to a fossil_sys_hostinfo_load_t structure
- *                  that will be populated with load information.
- * @return 0 on success, or a negative error code on failure.
- */
-int fossil_sys_hostinfo_get_load(fossil_sys_hostinfo_load_t *info);
 
 /**
  * @brief Retrieves hardware information about the host system.

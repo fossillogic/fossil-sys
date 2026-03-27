@@ -32,7 +32,7 @@
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>   // for getloadavg on Linux and general use
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
@@ -1060,6 +1060,7 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info) {
     info->is_up = 1;
 
 #elif defined(__APPLE__) || defined(__linux__)
+    #include <netinet/in.h>
     if (gethostname(info->hostname, sizeof(info->hostname)) != 0)
         fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
 
@@ -1184,55 +1185,6 @@ int fossil_sys_hostinfo_get_time(fossil_sys_hostinfo_time_t *info) {
         fossil_sys_strcpy(info->locale, sizeof(info->locale), loc);
     else
         fossil_sys_strcpy(info->locale, sizeof(info->locale), "Unknown");
-
-    return 0;
-}
-
-int fossil_sys_hostinfo_get_load(fossil_sys_hostinfo_load_t *info) {
-    if (!info) return -1;
-    fossil_sys_zero(info, sizeof(*info));
-
-#if defined(_WIN32)
-    // Windows: getloadavg() not available, use placeholder values
-    info->load_avg_1m  = 0.0f;
-    info->load_avg_5m  = 0.0f;
-    info->load_avg_15m = 0.0f;
-
-#elif defined(__APPLE__)
-    double loads[3] = {0.0, 0.0, 0.0};
-    if (getloadavg(loads, 3) == 3) {
-        info->load_avg_1m  = (float)loads[0];
-        info->load_avg_5m  = (float)loads[1];
-        info->load_avg_15m = (float)loads[2];
-    } else {
-        info->load_avg_1m  = 0.0f;
-        info->load_avg_5m  = 0.0f;
-        info->load_avg_15m = 0.0f;
-    }
-
-#elif defined(__linux__)
-    #include <stdlib.h>   // getloadavg
-    #include <unistd.h>
-
-    double loads[3] = {0.0, 0.0, 0.0};
-    if (getloadavg(loads, 3) == 3) {
-        info->load_avg_1m  = (float)loads[0];
-        info->load_avg_5m  = (float)loads[1];
-        info->load_avg_15m = (float)loads[2];
-    } else {
-        info->load_avg_1m  = 0.0f;
-        info->load_avg_5m  = 0.0f;
-        info->load_avg_15m = 0.0f;
-    }
-
-#else
-    // Unknown platform: zero everything
-    info->load_avg_1m  = 0.0f;
-    info->load_avg_5m  = 0.0f;
-    info->load_avg_15m = 0.0f;
-#endif
-
-    info->cpu_usage_percent = 0.0f; // Requires runtime sampling on all platforms
 
     return 0;
 }

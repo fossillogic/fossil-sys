@@ -67,8 +67,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <dxgi.h>       // DirectX Graphics Infrastructure
-// #include <comdef.h>
-// #include <wrl/client.h>
+#include <initguid.h>
 #elif defined(__APPLE__)
 #include <IOKit/IOKitLib.h>
 #include <IOKit/graphics/IOGraphicsLib.h>
@@ -80,6 +79,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>  // for setlocale and LC_ALL
 
 static void fossil_sys_zero(void *ptr, size_t size) {
     if (ptr) {
@@ -346,22 +346,25 @@ int fossil_sys_hostinfo_get_gpu(fossil_sys_hostinfo_gpu_t *info) {
     memset(info, 0, sizeof(*info));
 #ifdef _WIN32
     // Use DXGI to enumerate adapters
-    Microsoft::WRL::ComPtr<IDXGIFactory> factory;
-    if (SUCCEEDED(CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)factory.GetAddressOf()))) {
-        IDXGIAdapter *adapter = nullptr;
-        if (factory->EnumAdapters(0, &adapter) == S_OK) {  // first GPU
+    IDXGIFactory *factory = NULL;
+    if (SUCCEEDED(CreateDXGIFactory(&IID_IDXGIFactory, (void**)&factory))) {
+        IDXGIAdapter *adapter = NULL;
+        if (factory->lpVtbl->EnumAdapters(factory, 0, &adapter) == S_OK) {  // first GPU
             DXGI_ADAPTER_DESC desc;
-            adapter->GetDesc(&desc);
+            if (adapter->lpVtbl->GetDesc(adapter, &desc) == S_OK) {
+                // Copy strings
+                wcstombs(info->name, desc.Description, sizeof(info->name)-1);
+                info->name[sizeof(info->name)-1] = '\0';
+                strncpy(info->vendor, "Unknown", sizeof(info->vendor)-1); // Vendor ID can be parsed if desired
+                info->vendor[sizeof(info->vendor)-1] = '\0';
+                snprintf(info->driver_version, sizeof(info->driver_version), "DeviceID: %u", desc.DeviceId);
 
-            // Copy strings
-            wcstombs(info->name, desc.Description, sizeof(info->name)-1);
-            strncpy(info->vendor, "Unknown", sizeof(info->vendor)-1); // Vendor ID can be parsed if desired
-            snprintf(info->driver_version, sizeof(info->driver_version), "DeviceID: %u", desc.DeviceId);
-
-            info->memory_total = desc.DedicatedVideoMemory;
-            info->memory_free = 0;  // DXGI doesn't provide free memory directly
-            adapter->Release();
+                info->memory_total = desc.DedicatedVideoMemory;
+                info->memory_free = 0;  // DXGI doesn't provide free memory directly
+            }
+            adapter->lpVtbl->Release(adapter);
         }
+        factory->lpVtbl->Release(factory);
     }
 #elif defined(__APPLE__)
     // macOS: Use IOKit to find GPU devices

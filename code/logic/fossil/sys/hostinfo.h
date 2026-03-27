@@ -595,6 +595,92 @@ namespace fossil {
                 return info;
             }
 
+            /**
+             * @brief Retrieves network information about the host system.
+             *
+             * This function returns a structure with details about the primary network
+             * interface, including hostname, IP address, MAC address, interface name,
+             * and link status.
+             *
+             * @return A structure containing network information.
+             */
+            static fossil_sys_hostinfo_network_t get_network() {
+                fossil_sys_hostinfo_network_t info;
+                fossil_sys_hostinfo_get_network(&info);
+                return info;
+            }
+
+            /**
+             * @brief Retrieves information about the current process.
+             *
+             * This function returns a structure with details about the running process,
+             * including process ID, parent process ID, executable path, working directory,
+             * process name, and privilege level.
+             *
+             * @return A structure containing process information.
+             */
+            static fossil_sys_hostinfo_process_t get_process() {
+                fossil_sys_hostinfo_process_t info;
+                fossil_sys_hostinfo_get_process(&info);
+                return info;
+            }
+
+            /**
+             * @brief Retrieves system resource limits.
+             *
+             * This function returns a structure with information about system-imposed
+             * limits such as maximum open files, maximum processes, and memory page size.
+             *
+             * @return A structure containing limits information.
+             */
+            static fossil_sys_hostinfo_limits_t get_limits() {
+                fossil_sys_hostinfo_limits_t info;
+                fossil_sys_hostinfo_get_limits(&info);
+                return info;
+            }
+
+            /**
+             * @brief Retrieves time and locale information.
+             *
+             * This function returns a structure with details about the system timezone,
+             * UTC offset, and locale settings.
+             *
+             * @return A structure containing time and locale information.
+             */
+            static fossil_sys_hostinfo_time_t get_time() {
+                fossil_sys_hostinfo_time_t info;
+                fossil_sys_hostinfo_get_time(&info);
+                return info;
+            }
+
+            /**
+             * @brief Retrieves hardware information about the host system.
+             *
+             * This function returns a structure with details about the system
+             * manufacturer, product name, serial number, and BIOS or firmware version.
+             *
+             * @return A structure containing hardware information.
+             */
+            static fossil_sys_hostinfo_hardware_t get_hardware() {
+                fossil_sys_hostinfo_hardware_t info;
+                fossil_sys_hostinfo_get_hardware(&info);
+                return info;
+            }
+
+            /**
+             * @brief Retrieves display information about the host system.
+             *
+             * This function returns a structure with details about connected displays,
+             * including display count, primary resolution, and refresh rate.
+             *
+             * @return A structure containing display information.
+             */
+            static fossil_sys_hostinfo_display_t get_display() {
+                fossil_sys_hostinfo_display_t info;
+                fossil_sys_hostinfo_get_display(&info);
+                return info;
+            }
+
         };
 
     }

@@ -64,6 +64,10 @@ FOSSIL_TEST(c_test_hostinfo_get_system)
     ASSUME_ITS_TRUE(strlen(info.os_name) > 0);
     ASSUME_ITS_TRUE(strlen(info.os_version) > 0);
     ASSUME_ITS_TRUE(strlen(info.kernel_version) > 0);
+    ASSUME_ITS_TRUE(strlen(info.hostname) > 0);
+    ASSUME_ITS_TRUE(strlen(info.username) > 0);
+    ASSUME_ITS_TRUE(strlen(info.machine_type) > 0);
+    ASSUME_ITS_TRUE(strlen(info.platform) > 0);
 }
 
 FOSSIL_TEST(c_test_hostinfo_get_memory)
@@ -73,6 +77,10 @@ FOSSIL_TEST(c_test_hostinfo_get_memory)
     ASSUME_ITS_TRUE(result == 0);
     ASSUME_ITS_TRUE(info.total_memory > 0);
     ASSUME_ITS_TRUE(info.free_memory <= info.total_memory);
+    ASSUME_ITS_TRUE(info.used_memory <= info.total_memory);
+    ASSUME_ITS_TRUE(info.available_memory <= info.total_memory);
+    ASSUME_ITS_TRUE(info.total_swap >= info.used_swap);
+    ASSUME_ITS_TRUE(info.total_swap >= info.free_swap);
 }
 
 FOSSIL_TEST(c_test_hostinfo_get_architecture)
@@ -166,7 +174,7 @@ FOSSIL_TEST(c_test_hostinfo_get_network)
     int result = fossil_sys_hostinfo_get_network(&info);
     ASSUME_ITS_TRUE(result == 0);
     ASSUME_ITS_TRUE(strlen(info.hostname) > 0);
-    ASSUME_ITS_TRUE(strlen(info.ip_address) > 0);
+    ASSUME_ITS_TRUE(strlen(info.primary_ip) > 0);
     ASSUME_ITS_TRUE(strlen(info.mac_address) > 0);
     ASSUME_ITS_TRUE(strlen(info.interface_name) > 0);
     ASSUME_ITS_TRUE(info.is_up == 0 || info.is_up == 1);
@@ -180,9 +188,9 @@ FOSSIL_TEST(c_test_hostinfo_get_process)
     ASSUME_ITS_TRUE(info.pid > 0);
     ASSUME_ITS_TRUE(info.ppid >= 0);
     ASSUME_ITS_TRUE(strlen(info.executable_path) > 0);
-    ASSUME_ITS_TRUE(strlen(info.working_directory) > 0);
+    ASSUME_ITS_TRUE(strlen(info.current_working_dir) > 0);
     ASSUME_ITS_TRUE(strlen(info.process_name) > 0);
-    ASSUME_ITS_TRUE(info.privilege_level >= 0);
+    ASSUME_ITS_TRUE(info.is_elevated == 0 || info.is_elevated == 1);
 }
 
 FOSSIL_TEST(c_test_hostinfo_get_limits)
@@ -190,8 +198,8 @@ FOSSIL_TEST(c_test_hostinfo_get_limits)
     fossil_sys_hostinfo_limits_t info;
     int result = fossil_sys_hostinfo_get_limits(&info);
     ASSUME_ITS_TRUE(result == 0);
-    ASSUME_ITS_TRUE(info.max_open_files > 0 || info.max_open_files == -1);
-    ASSUME_ITS_TRUE(info.max_processes > 0 || info.max_processes == -1);
+    ASSUME_ITS_TRUE(info.max_open_files > 0 || info.max_open_files == (uint64_t)-1);
+    ASSUME_ITS_TRUE(info.max_processes > 0 || info.max_processes == (uint64_t)-1);
     ASSUME_ITS_TRUE(info.page_size > 0);
 }
 

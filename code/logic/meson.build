@@ -19,6 +19,9 @@ elif host_machine.system() == 'linux'
 endif
 
 if host_machine.system() == 'darwin'
+    winsock_dep = []
+    bcrypt_dep  = []
+    dxgi_dep    = []
     iokit_dep = dependency('appleframeworks', modules: ['IOKit', 'Foundation'])
 else
     iokit_dep = []

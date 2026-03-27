@@ -923,6 +923,9 @@ void fossil_sys_strcpy(char *dst, size_t dst_sz, const char *src) {
     }
     strncpy(dst, src, dst_sz - 1);
     dst[dst_sz - 1] = '\0';
+    // Ensure null-termination even if src is longer than dst_sz - 1
+    if (dst_sz > 0)
+        dst[dst_sz - 1] = '\0';
 }
 
 static int fossil_detect_container_linux(char *type, size_t type_sz) {

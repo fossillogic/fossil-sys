@@ -138,8 +138,8 @@ FOSSIL_TEST(cpp_test_hostinfo_get_gpu)
 FOSSIL_TEST(cpp_test_hostinfo_get_power)
 {
     auto info = fossil::sys::Hostinfo::get_power();
-    // on_acpp_power: -1 (unknown) or 0/1
-    ASSUME_ITS_TRUE(info.on_acpp_power == -1 || info.on_acpp_power == 0 || info.on_acpp_power == 1);
+    // on_ac_power: -1 (unknown) or 0/1
+    ASSUME_ITS_TRUE(info.on_ac_power == -1 || info.on_ac_power == 0 || info.on_ac_power == 1);
     // battery_present: -1 (unknown) or 0/1
     ASSUME_ITS_TRUE(info.battery_present == -1 || info.battery_present == 0 || info.battery_present == 1);
     // battery_charging: -1 (unknown) or 0/1
@@ -155,7 +155,7 @@ FOSSIL_TEST(cpp_test_hostinfo_get_network)
     auto info = fossil::sys::Hostinfo::get_network();
     ASSUME_ITS_TRUE(strlen(info.hostname) > 0);
     ASSUME_ITS_TRUE(strlen(info.primary_ip) > 0);
-    ASSUME_ITS_TRUE(strlen(info.macpp_address) > 0);
+    ASSUME_ITS_TRUE(strlen(info.mac_address) > 0);
     ASSUME_ITS_TRUE(strlen(info.interface_name) > 0);
     ASSUME_ITS_TRUE(info.is_up == 0 || info.is_up == 1);
 }
@@ -221,6 +221,12 @@ FOSSIL_TEST_GROUP(cpp_hostinfo_tests)
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_cpu);
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_gpu);
     FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_power);
+    // FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_network);
+    // FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_process);
+    // FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_limits);
+    // FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_time);
+    // FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_hardware);
+    // FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_display);
 
     FOSSIL_TEST_REGISTER(cpp_hostinfo_suite);
 }

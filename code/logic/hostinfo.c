@@ -1059,16 +1059,13 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info) {
     if (gethostname(info->hostname, sizeof(info->hostname)) != 0)
         fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
 
-    struct addrinfo hints, *res = NULL;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-
-    if (getaddrinfo(info->hostname, NULL, &hints, &res) == 0 && res) {
-        struct sockaddr_in *addr = (struct sockaddr_in *)res->ai_addr;
-        const char *ip = inet_ntoa(addr->sin_addr);
+    struct hostent *he = gethostbyname(info->hostname);
+    if (he && he->h_addrtype == AF_INET && he->h_length == 4 && he->h_addr_list[0]) {
+        const char *ip = inet_ntoa(*(struct in_addr *)he->h_addr_list[0]);
         if (ip)
             fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
-        freeaddrinfo(res);
+        else
+            fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
     } else {
         fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
     }

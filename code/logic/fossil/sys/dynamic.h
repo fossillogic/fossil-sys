@@ -26,39 +26,40 @@
 #define FOSSIL_SYS_DYNAMIC_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <stdbool.h>
 #include <stddef.h>
 
 /* ------------------------------------------------------
- * Platform abstraction
- * ----------------------------------------------------- */
+    * Platform abstraction
+    * ----------------------------------------------------- */
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 typedef HMODULE fossil_sys_dynamic_handle_t;
 #else
-typedef void* fossil_sys_dynamic_handle_t;
+typedef void *fossil_sys_dynamic_handle_t;
 #endif
 
 /* ------------------------------------------------------
- * Types
- * ----------------------------------------------------- */
+    * Types
+    * ----------------------------------------------------- */
 
 /* Dynamic library descriptor */
-typedef struct {
-    const char* id;                    /* string ID for AI/meta tracking */
-    const char* path;                  /* file path to library */
+typedef struct
+{
+    const char *id;   /* string ID for AI/meta tracking */
+    const char *path; /* file path to library */
     fossil_sys_dynamic_handle_t handle;
-    int status;                        /* loaded / unloaded / error */
+    int status; /* loaded / unloaded / error */
 } fossil_sys_dynamic_lib_t;
 
-
 /* ------------------------------------------------------
- * Lifecycle
- * ----------------------------------------------------- */
+    * Lifecycle
+    * ----------------------------------------------------- */
 
 /**
  * @brief Load a dynamic library from the specified path.
@@ -72,8 +73,8 @@ typedef struct {
  * @return          true if library loaded successfully, false otherwise.
  */
 bool fossil_sys_dynamic_load(
-    const char* path,
-    fossil_sys_dynamic_lib_t* out_lib);
+    const char *path,
+    fossil_sys_dynamic_lib_t *out_lib);
 
 /**
  * @brief Unload a previously loaded dynamic library.
@@ -85,12 +86,11 @@ bool fossil_sys_dynamic_load(
  * @return          true if unload succeeded, false on error.
  */
 bool fossil_sys_dynamic_unload(
-    fossil_sys_dynamic_lib_t* lib);
-
+    fossil_sys_dynamic_lib_t *lib);
 
 /* ------------------------------------------------------
- * Symbol resolution
- * ----------------------------------------------------- */
+    * Symbol resolution
+    * ----------------------------------------------------- */
 
 /**
  * @brief Retrieve a function or symbol pointer from the loaded library.
@@ -103,14 +103,13 @@ bool fossil_sys_dynamic_unload(
  * @param symbol_name   Name of the symbol to resolve.
  * @return              Pointer to the symbol, or NULL on failure.
  */
-void* fossil_sys_dynamic_symbol(
-    fossil_sys_dynamic_lib_t* lib,
-    const char* symbol_name);
-
+void *fossil_sys_dynamic_symbol(
+    fossil_sys_dynamic_lib_t *lib,
+    const char *symbol_name);
 
 /* ------------------------------------------------------
- * Introspection / diagnostics
- * ----------------------------------------------------- */
+    * Introspection / diagnostics
+    * ----------------------------------------------------- */
 
 /**
  * @brief Check whether a library is currently loaded.
@@ -122,7 +121,7 @@ void* fossil_sys_dynamic_symbol(
  * @return      true if library is loaded, false otherwise.
  */
 bool fossil_sys_dynamic_is_loaded(
-    const fossil_sys_dynamic_lib_t* lib);
+    const fossil_sys_dynamic_lib_t *lib);
 
 /**
  * @brief Retrieve the last error message from dynamic library operations.
@@ -133,140 +132,245 @@ bool fossil_sys_dynamic_is_loaded(
  *
  * @return  Error message string, or empty string if no error occurred.
  */
-const char* fossil_sys_dynamic_error(void);
-
+const char *fossil_sys_dynamic_error(void);
 
 #ifdef __cplusplus
 }
 
-namespace fossil::sys {
+namespace fossil::sys
+{
 
-class Dynamic {
-private:
-    fossil_sys_dynamic_lib_t lib_{};
-    bool loaded_ = false;
+    class Dynamic
+    {
+    private:
+        fossil_sys_dynamic_lib_t lib_{};
+        bool loaded_ = false;
 
-    /* ----------------------------------------------
-     * Internal validation hook
-     * (You can expand this later)
-     * ---------------------------------------------- */
-    static bool validate_path(const char* path) {
-        if (!path || !*path) return false;
+        /* ----------------------------------------------
+         * Internal validation hook
+         * (You can expand this later)
+         * ---------------------------------------------- */
+        static bool validate_path(const char *path)
+        {
+            if (!path || !*path)
+                return false;
 
-        /* block obvious traversal attempts */
-        if (strstr(path, "..")) return false;
+            /* block obvious traversal attempts */
+            if (strstr(path, ".."))
+                return false;
 
-        /* optional: forbid relative paths entirely */
-        if (path[0] == '.') return false;
+            /* optional: forbid relative paths entirely */
+            if (path[0] == '.')
+                return false;
 
-        return true;
-    }
-
-public:
-    /* ----------------------------------------------
-     * Constructors / Destructor
-     * ---------------------------------------------- */
-
-    Dynamic() = default;
-
-    explicit Dynamic(const char* path) {
-        load(path);
-    }
-
-    Dynamic(const char* id, const char* path) {
-        lib_.id = id;
-        load(path);
-    }
-
-    ~Dynamic() {
-        if (loaded_) {
-            fossil_sys_dynamic_unload(&lib_);
-            loaded_ = false;
+            return true;
         }
-    }
 
-    /* ----------------------------------------------
-     * Non-copyable
-     * ---------------------------------------------- */
-    Dynamic(const Dynamic&) = delete;
-    Dynamic& operator=(const Dynamic&) = delete;
+    public:
+        /* ----------------------------------------------
+         * Constructors / Destructor
+         * ---------------------------------------------- */
 
-    /* ----------------------------------------------
-     * Movable (safe transfer)
-     * ---------------------------------------------- */
-    Dynamic(Dynamic&& other) noexcept {
-        lib_ = other.lib_;
-        loaded_ = other.loaded_;
+        /**
+         * @brief Default constructor.
+         *
+         * Initializes an empty Dynamic object with no loaded library.
+         */
+        Dynamic() = default;
 
-        other.lib_.handle = nullptr;
-        other.loaded_ = false;
-    }
+        /**
+         * @brief Construct and load a dynamic library from the given path.
+         *
+         * Attempts to load the library at the specified path.
+         * The object will represent the loaded library if successful.
+         *
+         * @param path Path to the dynamic library file.
+         */
+        explicit Dynamic(const char *path)
+        {
+            load(path);
+        }
 
-    Dynamic& operator=(Dynamic&& other) noexcept {
-        if (this != &other) {
+        /**
+         * @brief Construct with an ID and load a dynamic library from the given path.
+         *
+         * Sets the library ID and attempts to load the library at the specified path.
+         *
+         * @param id   String identifier for the library.
+         * @param path Path to the dynamic library file.
+         */
+        Dynamic(const char *id, const char *path)
+        {
+            lib_.id = id;
+            load(path);
+        }
+
+        /**
+         * @brief Destructor.
+         *
+         * Unloads the library if it is currently loaded.
+         */
+        ~Dynamic()
+        {
             if (loaded_)
+            {
                 fossil_sys_dynamic_unload(&lib_);
+                loaded_ = false;
+            }
+        }
 
+        /**
+         * @brief Deleted copy constructor.
+         *
+         * Prevents copying of Dynamic objects to avoid double-unloading.
+         */
+        Dynamic(const Dynamic &) = delete;
+
+        /**
+         * @brief Deleted copy assignment operator.
+         *
+         * Prevents copying of Dynamic objects to avoid double-unloading.
+         */
+        Dynamic &operator=(const Dynamic &) = delete;
+
+        /**
+         * @brief Move constructor.
+         *
+         * Transfers ownership of the loaded library from another Dynamic object.
+         * The source object is left in an unloaded state.
+         *
+         * @param other Dynamic object to move from.
+         */
+        Dynamic(Dynamic &&other) noexcept
+        {
             lib_ = other.lib_;
             loaded_ = other.loaded_;
 
             other.lib_.handle = nullptr;
             other.loaded_ = false;
         }
-        return *this;
-    }
 
-    /* ----------------------------------------------
-     * Secure load
-     * ---------------------------------------------- */
-    bool load(const char* path) {
-        if (loaded_) return false;            /* already loaded */
-        if (!validate_path(path)) return false;
+        /**
+         * @brief Move assignment operator.
+         *
+         * Transfers ownership of the loaded library from another Dynamic object.
+         * Unloads any currently loaded library in this object.
+         * The source object is left in an unloaded state.
+         *
+         * @param other Dynamic object to move from.
+         * @return Reference to this object.
+         */
+        Dynamic &operator=(Dynamic &&other) noexcept
+        {
+            if (this != &other)
+            {
+                if (loaded_)
+                    fossil_sys_dynamic_unload(&lib_);
 
-        lib_.path = path;
+                lib_ = other.lib_;
+                loaded_ = other.loaded_;
 
-        if (!fossil_sys_dynamic_load(path, &lib_))
-            return false;
+                other.lib_.handle = nullptr;
+                other.loaded_ = false;
+            }
+            return *this;
+        }
 
-        loaded_ = true;
-        return true;
-    }
+        /**
+         * @brief Load a dynamic library from the specified path.
+         *
+         * Validates the path and attempts to load the library.
+         * Returns true on success, false otherwise.
+         *
+         * @param path Path to the dynamic library file.
+         * @return true if the library was loaded successfully, false otherwise.
+         */
+        bool load(const char *path)
+        {
+            if (loaded_)
+                return false; /* already loaded */
+            if (!validate_path(path))
+                return false;
 
-    /* ----------------------------------------------
-     * Secure unload
-     * ---------------------------------------------- */
-    bool unload() {
-        if (!loaded_) return false;
+            lib_.path = path;
 
-        if (!fossil_sys_dynamic_unload(&lib_))
-            return false;
+            if (!fossil_sys_dynamic_load(path, &lib_))
+                return false;
 
-        loaded_ = false;
-        return true;
-    }
+            loaded_ = true;
+            return true;
+        }
 
-    /* ----------------------------------------------
-     * Safe symbol lookup
-     * ---------------------------------------------- */
-    void* symbol(const char* name) {
-        if (!loaded_ || !name || !*name)
-            return nullptr;
+        /**
+         * @brief Unload the currently loaded dynamic library.
+         *
+         * Releases the library handle and marks the object as unloaded.
+         * Returns true on success, false otherwise.
+         *
+         * @return true if the library was unloaded successfully, false otherwise.
+         */
+        bool unload()
+        {
+            if (!loaded_)
+                return false;
 
-        return fossil_sys_dynamic_symbol(&lib_, name);
-    }
+            if (!fossil_sys_dynamic_unload(&lib_))
+                return false;
 
-    /* ----------------------------------------------
-     * State / diagnostics
-     * ---------------------------------------------- */
-    bool is_loaded() const { return loaded_; }
+            loaded_ = false;
+            return true;
+        }
 
-    const char* error() const {
-        return fossil_sys_dynamic_error();
-    }
+        /**
+         * @brief Look up a symbol in the loaded dynamic library.
+         *
+         * Returns a pointer to the symbol with the given name, or nullptr if not found.
+         *
+         * @param name Name of the symbol to look up.
+         * @return Pointer to the symbol, or nullptr if not found or not loaded.
+         */
+        void *symbol(const char *name)
+        {
+            if (!loaded_ || !name || !*name)
+                return nullptr;
 
-    const fossil_sys_dynamic_lib_t* raw() const { return &lib_; }
-    fossil_sys_dynamic_lib_t* raw() { return &lib_; }
-};
+            return fossil_sys_dynamic_symbol(&lib_, name);
+        }
+
+        /**
+         * @brief Check if a library is currently loaded.
+         *
+         * @return true if a library is loaded, false otherwise.
+         */
+        bool is_loaded() const { return loaded_; }
+
+        /**
+         * @brief Retrieve the last error message from dynamic library operations.
+         *
+         * Returns a platform-specific error string describing the most recent
+         * load, unload, or symbol resolution failure.
+         *
+         * @return Error message string, or empty string if no error occurred.
+         */
+        const char *error() const
+        {
+            return fossil_sys_dynamic_error();
+        }
+
+        /**
+         * @brief Get a const pointer to the underlying library descriptor.
+         *
+         * @return Const pointer to the fossil_sys_dynamic_lib_t structure.
+         */
+        const fossil_sys_dynamic_lib_t *raw() const { return &lib_; }
+
+        /**
+         * @brief Get a pointer to the underlying library descriptor.
+         *
+         * @return Pointer to the fossil_sys_dynamic_lib_t structure.
+         */
+        fossil_sys_dynamic_lib_t *raw() { return &lib_; }
+    };
 
 }
 #endif

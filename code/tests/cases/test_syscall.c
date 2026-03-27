@@ -37,12 +37,14 @@
 FOSSIL_SUITE(c_syscall_suite);
 
 // Setup function for the test suite
-FOSSIL_SETUP(c_syscall_suite) {
+FOSSIL_SETUP(c_syscall_suite)
+{
     // Setup code here
 }
 
 // Teardown function for the test suite
-FOSSIL_TEARDOWN(c_syscall_suite) {
+FOSSIL_TEARDOWN(c_syscall_suite)
+{
     // Teardown code here
 }
 
@@ -54,42 +56,50 @@ FOSSIL_TEARDOWN(c_syscall_suite) {
 // as samples for library usage.
 // * * * * * * * * * * * * * * * * * * * * * * * *
 
-FOSSIL_TEST(c_test_sys_call_execute) {
+FOSSIL_TEST(c_test_sys_call_execute)
+{
     int result = fossil_sys_call_execute("echo Fossil Logic");
     ASSUME_ITS_TRUE(result == 0);
 }
 
-FOSSIL_TEST(c_test_sys_call_getpid) {
+FOSSIL_TEST(c_test_sys_call_getpid)
+{
     int pid = fossil_sys_call_getpid();
     ASSUME_ITS_TRUE(pid > 0);
 }
 
-FOSSIL_TEST(c_test_sys_call_create_file) {
+FOSSIL_TEST(c_test_sys_call_create_file)
+{
     const char *filename = "test_file.txt";
     int result = fossil_sys_call_create_file(filename);
     ASSUME_ITS_TRUE(result == 0);
     remove(filename); // Clean up the test file
 }
 
-FOSSIL_TEST(c_test_sys_call_delete_file) {
+FOSSIL_TEST(c_test_sys_call_delete_file)
+{
     const char *filename = "delete_me.txt";
     FILE *f = fopen(filename, "w");
-    if (f) fclose(f);
+    if (f)
+        fclose(f);
     int result = fossil_sys_call_delete_file(filename);
     ASSUME_ITS_TRUE(result == 0);
     ASSUME_ITS_TRUE(!fossil_sys_call_file_exists(filename));
 }
 
-FOSSIL_TEST(c_test_sys_call_file_exists) {
+FOSSIL_TEST(c_test_sys_call_file_exists)
+{
     const char *filename = "exists.txt";
     FILE *f = fopen(filename, "w");
-    if (f) fclose(f);
+    if (f)
+        fclose(f);
     ASSUME_ITS_TRUE(fossil_sys_call_file_exists(filename) == 1);
     remove(filename);
     ASSUME_ITS_TRUE(fossil_sys_call_file_exists(filename) == 0);
 }
 
-FOSSIL_TEST(c_test_sys_call_create_directory) {
+FOSSIL_TEST(c_test_sys_call_create_directory)
+{
     const char *dirname = "test_dir";
     int result = fossil_sys_call_create_directory(dirname);
     ASSUME_ITS_TRUE(result == 0);
@@ -97,7 +107,8 @@ FOSSIL_TEST(c_test_sys_call_create_directory) {
     fossil_sys_call_delete_directory(dirname, 0);
 }
 
-FOSSIL_TEST(c_test_sys_call_delete_directory_non_recursive) {
+FOSSIL_TEST(c_test_sys_call_delete_directory_non_recursive)
+{
     const char *dirname = "dir_non_recursive";
     fossil_sys_call_create_directory(dirname);
     int result = fossil_sys_call_delete_directory(dirname, 0);
@@ -105,7 +116,8 @@ FOSSIL_TEST(c_test_sys_call_delete_directory_non_recursive) {
     ASSUME_ITS_TRUE(fossil_sys_call_is_directory(dirname) == 0);
 }
 
-FOSSIL_TEST(c_test_sys_call_delete_directory_recursive) {
+FOSSIL_TEST(c_test_sys_call_delete_directory_recursive)
+{
     const char *dirname = "dir_recursive";
     fossil_sys_call_create_directory(dirname);
     FILE *f;
@@ -117,13 +129,15 @@ FOSSIL_TEST(c_test_sys_call_delete_directory_recursive) {
     const char *filename = "dir_recursive/file.txt";
     f = fopen(filename, "w");
 #endif
-    if (f) fclose(f);
+    if (f)
+        fclose(f);
     int result = fossil_sys_call_delete_directory(dirname, 1);
     ASSUME_ITS_TRUE(result == 0);
     ASSUME_ITS_TRUE(fossil_sys_call_is_directory(dirname) == 0);
 }
 
-FOSSIL_TEST(c_test_sys_call_getcwd_and_chdir) {
+FOSSIL_TEST(c_test_sys_call_getcwd_and_chdir)
+{
     char orig[256], temp[256];
     fossil_sys_call_getcwd(orig, sizeof(orig));
     fossil_sys_call_create_directory("cwd_test");
@@ -134,7 +148,8 @@ FOSSIL_TEST(c_test_sys_call_getcwd_and_chdir) {
     fossil_sys_call_delete_directory("cwd_test", 0);
 }
 
-FOSSIL_TEST(c_test_sys_call_execute_capture) {
+FOSSIL_TEST(c_test_sys_call_execute_capture)
+{
     char buffer[128];
     int result = fossil_sys_call_execute_capture("echo HelloWorld", buffer, sizeof(buffer));
     ASSUME_ITS_TRUE(result == 0);
@@ -145,7 +160,8 @@ FOSSIL_TEST(c_test_sys_call_execute_capture) {
 // * Fossil Logic Test Pool
 // * * * * * * * * * * * * * * * * * * * * * * * *
 
-FOSSIL_TEST_GROUP(c_syscall_tests) {
+FOSSIL_TEST_GROUP(c_syscall_tests)
+{
     FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_execute);
     FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_getpid);
     FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_create_file);

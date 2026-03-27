@@ -26,12 +26,14 @@
 FOSSIL_SUITE(c_process_suite);
 
 // Setup function for the test suite
-FOSSIL_SETUP(c_process_suite) {
+FOSSIL_SETUP(c_process_suite)
+{
     // Setup code here
 }
 
 // Teardown function for the test suite
-FOSSIL_TEARDOWN(c_process_suite) {
+FOSSIL_TEARDOWN(c_process_suite)
+{
     // Teardown code here
 }
 
@@ -44,13 +46,15 @@ FOSSIL_TEARDOWN(c_process_suite) {
 // * * * * * * * * * * * * * * * * * * * * * * * *
 
 // ** Test fossil_sys_process_get_pid **
-FOSSIL_TEST(c_test_process_get_pid) {
+FOSSIL_TEST(c_test_process_get_pid)
+{
     uint32_t pid = fossil_sys_process_get_pid();
     ASSUME_ITS_TRUE(pid > 0);
 }
 
 // ** Test fossil_sys_process_get_name **
-FOSSIL_TEST(c_test_process_get_name) {
+FOSSIL_TEST(c_test_process_get_name)
+{
     uint32_t pid = fossil_sys_process_get_pid();
     char name[128] = {0};
 
@@ -59,41 +63,47 @@ FOSSIL_TEST(c_test_process_get_name) {
     ASSUME_ITS_TRUE(status == 0 || status == -2);
 
     /* Only validate contents if a name was actually returned */
-    if (status == 0 && name[0] != '\0') {
+    if (status == 0 && name[0] != '\0')
+    {
         ASSUME_ITS_TRUE(strlen(name) > 0);
     }
 }
 
 // ** Test fossil_sys_process_get_info **
-FOSSIL_TEST(c_test_process_get_info) {
+FOSSIL_TEST(c_test_process_get_info)
+{
     uint32_t pid = fossil_sys_process_get_pid();
     fossil_sys_process_info_t info;
     int status = fossil_sys_process_get_info(pid, &info);
     ASSUME_ITS_EQUAL_I32(status, 0);
     ASSUME_ITS_EQUAL_I32(info.pid, pid);
     ASSUME_ITS_TRUE(strlen(info.name) > 0);
-    // Optionally check that memory and thread count are nonzero (Linux)
-    #if defined(__linux__)
+// Optionally check that memory and thread count are nonzero (Linux)
+#if defined(__linux__)
     ASSUME_ITS_TRUE(info.memory_bytes > 0);
     ASSUME_ITS_TRUE(info.virtual_memory_bytes > 0);
     ASSUME_ITS_TRUE(info.thread_count > 0);
-    #endif
+#endif
 }
 
 // ** Test fossil_sys_process_list **
-FOSSIL_TEST(c_test_process_list) {
+FOSSIL_TEST(c_test_process_list)
+{
     fossil_sys_process_list_t plist = {0};
 
     int status = fossil_sys_process_list(&plist);
 
     ASSUME_ITS_TRUE(status == 0 || status == -2);
 
-    if (status == 0) {
+    if (status == 0)
+    {
         ASSUME_ITS_TRUE(plist.count > 0);
 
         int found = 0;
-        for (size_t i = 0; i < plist.count; ++i) {
-            if (plist.list[i].pid > 0) {
+        for (size_t i = 0; i < plist.count; ++i)
+        {
+            if (plist.list[i].pid > 0)
+            {
                 found = 1;
                 break;
             }
@@ -103,18 +113,21 @@ FOSSIL_TEST(c_test_process_list) {
 }
 
 // ** Test fossil_sys_process_get_environment **
-FOSSIL_TEST(c_test_process_get_environment) {
+FOSSIL_TEST(c_test_process_get_environment)
+{
     uint32_t pid = fossil_sys_process_get_pid();
     char buffer[4096];
     int written = fossil_sys_process_get_environment(pid, buffer, sizeof(buffer));
     ASSUME_ITS_TRUE(written >= 0 || written == -2);
-    if (written > 0) {
+    if (written > 0)
+    {
         ASSUME_ITS_TRUE(strchr(buffer, '=') != NULL || strchr(buffer, ';') != NULL);
     }
 }
 
 // ** Test fossil_sys_process_terminate (self-termination, should fail) **
-FOSSIL_TEST(c_test_process_terminate_self) {
+FOSSIL_TEST(c_test_process_terminate_self)
+{
     uint32_t pid = fossil_sys_process_get_pid();
     int status = fossil_sys_process_terminate(pid, 0);
     // Should fail to terminate self (returns -1)
@@ -124,7 +137,8 @@ FOSSIL_TEST(c_test_process_terminate_self) {
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Pool
 // * * * * * * * * * * * * * * * * * * * * * * * *
-FOSSIL_TEST_GROUP(c_process_tests) {
+FOSSIL_TEST_GROUP(c_process_tests)
+{
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_get_pid);
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_get_name);
     FOSSIL_TEST_ADD(c_process_suite, c_test_process_get_info);

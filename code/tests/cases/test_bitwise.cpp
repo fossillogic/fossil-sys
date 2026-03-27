@@ -26,12 +26,14 @@
 FOSSIL_SUITE(cpp_bitwise_suite);
 
 // Setup function for the test suite
-FOSSIL_SETUP(cpp_bitwise_suite) {
+FOSSIL_SETUP(cpp_bitwise_suite)
+{
     // Setup code here
 }
 
 // Teardown function for the test suite
-FOSSIL_TEARDOWN(cpp_bitwise_suite) {
+FOSSIL_TEARDOWN(cpp_bitwise_suite)
+{
     // Teardown code here
 }
 
@@ -44,13 +46,13 @@ FOSSIL_TEARDOWN(cpp_bitwise_suite) {
 // * * * * * * * * * * * * * * * * * * * * * * * *
 
 // ** Test fossil::sys::Bitwise::parse Function **
-FOSSIL_TEST(cpp_test_class_bitwise_parse) {
+FOSSIL_TEST(cpp_test_class_bitwise_parse)
+{
     fossil_sys_bitwise_entry_t entries[] = {
         {"read", 0x1},
         {"write", 0x2},
         {"execute", 0x4},
-        {nullptr, 0}
-    };
+        {nullptr, 0}};
 
     fossil_sys_bitwise_table_t table = {entries, sizeof(entries) / sizeof(entries[0]) - 1};
 
@@ -65,13 +67,13 @@ FOSSIL_TEST(cpp_test_class_bitwise_parse) {
 }
 
 // ** Test fossil::sys::Bitwise::format Function **
-FOSSIL_TEST(cpp_test_class_bitwise_format) {
+FOSSIL_TEST(cpp_test_class_bitwise_format)
+{
     fossil_sys_bitwise_entry_t entries[] = {
         {"read", 0x1},
         {"write", 0x2},
         {"execute", 0x4},
-        {nullptr, 0}
-    };
+        {nullptr, 0}};
 
     fossil_sys_bitwise_table_t table = {entries, sizeof(entries) / sizeof(entries[0]) - 1};
 
@@ -90,13 +92,13 @@ FOSSIL_TEST(cpp_test_class_bitwise_format) {
 }
 
 // ** Test fossil::sys::Bitwise::lookup Function **
-FOSSIL_TEST(cpp_test_class_bitwise_lookup) {
+FOSSIL_TEST(cpp_test_class_bitwise_lookup)
+{
     fossil_sys_bitwise_entry_t entries[] = {
         {"read", 0x1},
         {"write", 0x2},
         {"execute", 0x4},
-        {nullptr, 0}
-    };
+        {nullptr, 0}};
 
     fossil_sys_bitwise_table_t table = {entries, sizeof(entries) / sizeof(entries[0]) - 1};
 
@@ -114,13 +116,13 @@ FOSSIL_TEST(cpp_test_class_bitwise_lookup) {
 }
 
 // ** Test fossil::sys::Bitwise::all Function **
-FOSSIL_TEST(cpp_test_class_bitwise_all) {
+FOSSIL_TEST(cpp_test_class_bitwise_all)
+{
     fossil_sys_bitwise_entry_t entries[] = {
         {"read", 0x1},
         {"write", 0x2},
         {"execute", 0x4},
-        {nullptr, 0}
-    };
+        {nullptr, 0}};
     fossil_sys_bitwise_table_t table = {entries, sizeof(entries) / sizeof(entries[0]) - 1};
 
     uint64_t mask = fossil::sys::Bitwise::all(&table);
@@ -128,13 +130,13 @@ FOSSIL_TEST(cpp_test_class_bitwise_all) {
 }
 
 // ** Test fossil::sys::Bitwise::validate Function **
-FOSSIL_TEST(cpp_test_class_bitwise_validate) {
+FOSSIL_TEST(cpp_test_class_bitwise_validate)
+{
     fossil_sys_bitwise_entry_t entries[] = {
         {"read", 0x1},
         {"write", 0x2},
         {"execute", 0x4},
-        {nullptr, 0}
-    };
+        {nullptr, 0}};
     fossil_sys_bitwise_table_t table = {entries, sizeof(entries) / sizeof(entries[0]) - 1};
 
     // Known good mask
@@ -145,13 +147,13 @@ FOSSIL_TEST(cpp_test_class_bitwise_validate) {
 }
 
 // ** Test fossil::sys::Bitwise::name Function **
-FOSSIL_TEST(cpp_test_class_bitwise_name) {
+FOSSIL_TEST(cpp_test_class_bitwise_name)
+{
     fossil_sys_bitwise_entry_t entries[] = {
         {"read", 0x1},
         {"write", 0x2},
         {"execute", 0x4},
-        {nullptr, 0}
-    };
+        {nullptr, 0}};
     fossil_sys_bitwise_table_t table = {entries, sizeof(entries) / sizeof(entries[0]) - 1};
 
     std::string name = fossil::sys::Bitwise::name(0x1, &table);
@@ -165,14 +167,16 @@ FOSSIL_TEST(cpp_test_class_bitwise_name) {
 }
 
 // ** Test fossil::sys::Bitwise::count Function **
-FOSSIL_TEST(cpp_test_class_bitwise_count) {
+FOSSIL_TEST(cpp_test_class_bitwise_count)
+{
     ASSUME_ITS_EQUAL_I32(fossil::sys::Bitwise::count(0x7), 3);
     ASSUME_ITS_EQUAL_I32(fossil::sys::Bitwise::count(0x0), 0);
     ASSUME_ITS_EQUAL_I32(fossil::sys::Bitwise::count(0xFFFFFFFFFFFFFFFFULL), 64);
 }
 
 // ** Test fossil::sys::Bitwise::has Function **
-FOSSIL_TEST(cpp_test_class_bitwise_has) {
+FOSSIL_TEST(cpp_test_class_bitwise_has)
+{
     uint64_t mask = 0x5; // bits 0 and 2 set
     ASSUME_ITS_TRUE(fossil::sys::Bitwise::has(mask, 0x1));
     ASSUME_ITS_FALSE(fossil::sys::Bitwise::has(mask, 0x2));
@@ -180,13 +184,13 @@ FOSSIL_TEST(cpp_test_class_bitwise_has) {
 }
 
 // ** Test fossil::sys::Bitwise::format (std::string version) **
-FOSSIL_TEST(cpp_test_class_bitwise_format_string) {
+FOSSIL_TEST(cpp_test_class_bitwise_format_string)
+{
     fossil_sys_bitwise_entry_t entries[] = {
         {"read", 0x1},
         {"write", 0x2},
         {"execute", 0x4},
-        {nullptr, 0}
-    };
+        {nullptr, 0}};
     fossil_sys_bitwise_table_t table = {entries, sizeof(entries) / sizeof(entries[0]) - 1};
 
     std::string result = fossil::sys::Bitwise::format(0x3, &table);
@@ -202,7 +206,8 @@ FOSSIL_TEST(cpp_test_class_bitwise_format_string) {
 // * * * * * * * * * * * * * * * * * * * * * * * *
 // * Fossil Logic Test Pool
 // * * * * * * * * * * * * * * * * * * * * * * * *
-FOSSIL_TEST_GROUP(cpp_bitwise_tests) {
+FOSSIL_TEST_GROUP(cpp_bitwise_tests)
+{
     FOSSIL_TEST_ADD(cpp_bitwise_suite, cpp_test_class_bitwise_parse);
     FOSSIL_TEST_ADD(cpp_bitwise_suite, cpp_test_class_bitwise_format);
     FOSSIL_TEST_ADD(cpp_bitwise_suite, cpp_test_class_bitwise_lookup);

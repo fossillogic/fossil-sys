@@ -375,7 +375,8 @@ static inline void fossil_strlcpy(char *dst, size_t size, const char *src)
     if (!dst || size == 0)
         return;
 
-    if (!src) {
+    if (!src)
+    {
         dst[0] = '\0';
         return;
     }
@@ -550,7 +551,11 @@ int fossil_sys_process_suspend(uint32_t pid)
     if (!h)
         return -1;
     typedef LONG(WINAPI * PFN_NtSuspendProcess)(HANDLE);
-    union { FARPROC fp; PFN_NtSuspendProcess fn; } u;
+    union
+    {
+        FARPROC fp;
+        PFN_NtSuspendProcess fn;
+    } u;
     u.fp = GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtSuspendProcess");
     PFN_NtSuspendProcess NtSuspendProcess = u.fn;
     if (!NtSuspendProcess)
@@ -569,7 +574,11 @@ int fossil_sys_process_resume(uint32_t pid)
     if (!h)
         return -1;
     typedef LONG(WINAPI * PFN_NtResumeProcess)(HANDLE);
-    union { FARPROC fp; PFN_NtResumeProcess fn; } u;
+    union
+    {
+        FARPROC fp;
+        PFN_NtResumeProcess fn;
+    } u;
     u.fp = GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtResumeProcess");
     PFN_NtResumeProcess NtResumeProcess = u.fn;
     if (!NtResumeProcess)

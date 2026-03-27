@@ -50,6 +50,8 @@
     #include <sys/types.h>
     #include <sys/sysctl.h>
     #include <sys/time.h>
+    #include <arpa/inet.h>
+    #include <netdb.h>
 #else
     // Unix/Linux
     #include <unistd.h>
@@ -366,7 +368,8 @@ int fossil_sys_hostinfo_get_gpu(fossil_sys_hostinfo_gpu_t *info) {
     CFMutableDictionaryRef matchDict = IOServiceMatching("IOPCIDevice");
     if (matchDict) {
         io_iterator_t iter;
-        if (IOServiceGetMatchingServices(kIOMasterPortDefault, matchDict, &iter) == KERN_SUCCESS) {
+        // Use kIOMainPortDefault for macOS 12+ compatibility
+        if (IOServiceGetMatchingServices(kIOMainPortDefault, matchDict, &iter) == KERN_SUCCESS) {
             io_object_t service;
             while ((service = IOIteratorNext(iter))) {
                 CFStringRef model = (CFStringRef) IORegistryEntryCreateCFProperty(
@@ -375,7 +378,8 @@ int fossil_sys_hostinfo_get_gpu(fossil_sys_hostinfo_gpu_t *info) {
                     CFIndex length = CFStringGetLength(model);
                     CFIndex maxSize = CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8) + 1;
                     char buffer[256];
-                    if (maxSize < sizeof(buffer)) {
+                    // Cast sizeof(buffer) to CFIndex for comparison
+                    if (maxSize < (CFIndex)sizeof(buffer)) {
                         if (CFStringGetCString(model, buffer, sizeof(buffer), kCFStringEncodingUTF8)) {
                             strncpy(info->name, buffer, sizeof(info->name)-1);
                             strncpy(info->vendor, "Apple/AMD/NVIDIA", sizeof(info->vendor)-1);

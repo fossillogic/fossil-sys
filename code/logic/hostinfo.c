@@ -68,7 +68,7 @@
 #include <windows.h>
 #include <dxgi.h>       // DirectX Graphics Infrastructure
 // #include <comdef.h>
-#include <wrl/client.h>
+// #include <wrl/client.h>
 #elif defined(__APPLE__)
 #include <IOKit/IOKitLib.h>
 #include <IOKit/graphics/IOGraphicsLib.h>

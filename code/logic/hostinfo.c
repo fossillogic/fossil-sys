@@ -1371,39 +1371,109 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
     fossil_sys_zero(info, sizeof(*info));
 
 #if defined(_WIN32)
-    char hostname[128];
+    // Initialize Winsock
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
+        return -1;
+
+    // Hostname
+    char hostname[128] = {0};
     DWORD size = sizeof(hostname);
     if (GetComputerNameA(hostname, &size))
         fossil_sys_strcpy(info->hostname, sizeof(info->hostname), hostname);
     else
         fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
 
-    fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
-    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
-    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
+    // Network interfaces
+    IP_ADAPTER_ADDRESSES *adapters = NULL;
+    ULONG outBufLen = 0;
+    ULONG flags = GAA_FLAG_INCLUDE_PREFIX;
+
+    // First call to get buffer size
+    GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapters, &outBufLen);
+    adapters = (IP_ADAPTER_ADDRESSES *)malloc(outBufLen);
+    if (adapters && GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapters, &outBufLen) == NO_ERROR)
+    {
+        IP_ADAPTER_ADDRESSES *adapter = adapters;
+        while (adapter)
+        {
+            // Skip loopback and down interfaces
+            if (adapter->OperStatus == IfOperStatusUp && adapter->IfType != IF_TYPE_SOFTWARE_LOOPBACK)
+            {
+                // Primary interface name
+                fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), adapter->AdapterName);
+
+                // MAC address
+                if (adapter->PhysicalAddressLength > 0)
+                {
+                    char mac[32];
+                    snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+                        adapter->PhysicalAddress[0], adapter->PhysicalAddress[1],
+                        adapter->PhysicalAddress[2], adapter->PhysicalAddress[3],
+                        adapter->PhysicalAddress[4], adapter->PhysicalAddress[5]);
+                    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), mac);
+                }
+
+                // IPv4 address (first available)
+                IP_ADAPTER_UNICAST_ADDRESS *ua = adapter->FirstUnicastAddress;
+                while (ua)
+                {
+                    if (ua->Address.lpSockaddr->sa_family == AF_INET)
+                    {
+                        struct sockaddr_in *sa_in = (struct sockaddr_in *)ua->Address.lpSockaddr;
+                        const char *ip = inet_ntoa(sa_in->sin_addr);
+                        if (ip)
+                            fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
+                        break;
+                    }
+                    ua = ua->Next;
+                }
+
+                break; // Found first active interface
+            }
+            adapter = adapter->Next;
+        }
+    }
+
+    if (adapters) free(adapters);
+    WSACleanup();
     info->is_up = 1;
 
 #elif defined(__APPLE__) || defined(__linux__)
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <string.h>
+
+    // Hostname
     if (gethostname(info->hostname, sizeof(info->hostname)) != 0)
         fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
 
-    struct hostent *he = gethostbyname(info->hostname);
-    if (he && he->h_addrtype == AF_INET && he->h_length == 4 && he->h_addr_list[0])
+    // Primary IP: first non-loopback IPv4
+    struct ifaddrs *ifaddr, *ifa;
+    if (getifaddrs(&ifaddr) == 0)
     {
-        const char *ip = inet_ntoa(*(struct in_addr *)he->h_addr_list[0]);
-        if (ip)
-            fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
-        else
-            fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
-    }
-    else
-    {
-        fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
+        for (ifa = ifaddr; ifa; ifa = ifa->ifa_next)
+        {
+            if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
+            {
+                struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+                const char *ip = inet_ntoa(sa->sin_addr);
+                if (ip)
+                    fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
+
+                if (ifa->ifa_name)
+                    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), ifa->ifa_name);
+
+                break;
+            }
+        }
+        freeifaddrs(ifaddr);
     }
 
+    // MAC address is not trivial without /sys or ioctl; leave Unknown
     fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
-    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
     info->is_up = 1;
 
 #else

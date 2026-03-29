@@ -67,6 +67,9 @@
 #include <arpa/inet.h>
 #include <locale.h>
 #include <netdb.h>
+
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
 #endif
 
 #ifdef _WIN32
@@ -79,6 +82,7 @@
 #include <IOKit/ps/IOPSKeys.h>
 #include <IOKit/graphics/IOGraphicsLib.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <CoreGraphics/CoreGraphics.h>
 #endif
 
 #include <fcntl.h> // for open(), O_RDONLY
@@ -1599,8 +1603,6 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
         info->primary_refresh_rate = 0;
 
 #elif defined(__APPLE__)
-    #include <CoreGraphics/CoreGraphics.h>
-
     uint32_t display_count = 0;
     CGDirectDisplayID *displays = NULL;
 
@@ -1628,10 +1630,6 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
     }
 
 #elif defined(__linux__)
-    // Linux: use X11 if available
-    #include <X11/Xlib.h>
-    #include <X11/extensions/Xrandr.h>
-
     Display *dpy = XOpenDisplay(NULL);
     if (!dpy)
         return -1;

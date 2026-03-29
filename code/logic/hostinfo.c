@@ -39,7 +39,9 @@
 #include <errno.h>
 
 #ifdef _WIN32
-#include <winsock2.h> // for inet_ntoa on Windows
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
 #include <windows.h>
 #include <tchar.h>
 #include <sysinfoapi.h>

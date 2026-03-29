@@ -68,8 +68,15 @@
 #include <locale.h>
 #include <netdb.h>
 
-#include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <linux/kd.h>
+#include <linux/fb.h>
+#include <drm/drm_mode.h>
+#include <drm/drm.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 #endif
 
 #ifdef _WIN32
@@ -1628,43 +1635,48 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
     }
 
 #elif defined(__linux__)
-    Display *dpy = XOpenDisplay(NULL);
-    if (!dpy)
-        return -1;
+    int drm_fd = -1;
+    drmModeRes *resources = NULL;
 
-    Window root = DefaultRootWindow(dpy);
-    XRRScreenResources *res = XRRGetScreenResources(dpy, root);
-    if (!res)
-    {
-        XCloseDisplay(dpy);
-        return -1;
+    drm_fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
+    if (drm_fd >= 0) {
+        resources = drmModeGetResources(drm_fd);
+        if (resources) {
+            info->display_count = resources->count_connectors;
+
+            for (int i = 0; i < resources->count_connectors; ++i) {
+                drmModeConnector *conn = drmModeGetConnector(drm_fd, resources->connectors[i]);
+                if (!conn) continue;
+
+                if (conn->connection == DRM_MODE_CONNECTED && conn->count_modes > 0) {
+                    // Use first connected mode as primary
+                    info->primary_width = conn->modes[0].hdisplay;
+                    info->primary_height = conn->modes[0].vdisplay;
+                    info->primary_refresh_rate = conn->modes[0].vrefresh;
+                    drmModeFreeConnector(conn);
+                    break;
+                }
+                drmModeFreeConnector(conn);
+            }
+            drmModeFreeResources(resources);
+        }
+        close(drm_fd);
     }
 
-    info->display_count = res->noutput;
-
-    if (res->noutput > 0)
-    {
-        RROutput primary = XRRGetOutputPrimary(dpy, root);
-        if (primary)
-        {
-            XRROutputInfo *oInfo = XRRGetOutputInfo(dpy, res, primary);
-            if (oInfo && oInfo->connection == RR_Connected)
-            {
-                XRRCrtcInfo *cInfo = XRRGetCrtcInfo(dpy, res, oInfo->crtc);
-                if (cInfo)
-                {
-                    info->primary_width  = cInfo->width;
-                    info->primary_height = cInfo->height;
-                    info->primary_refresh_rate = cInfo->mode ? (int)(cInfo->rotation) : 0; // best effort
-                    XRRFreeCrtcInfo(cInfo);
-                }
-                XRRFreeOutputInfo(oInfo);
+    // Fallback to framebuffer if DRM fails
+    if (info->display_count == 0) {
+        int fb = open("/dev/fb0", O_RDONLY);
+        if (fb >= 0) {
+            struct fb_var_screeninfo vinfo;
+            if (ioctl(fb, FBIOGET_VSCREENINFO, &vinfo) == 0) {
+                info->display_count = 1;
+                info->primary_width = vinfo.xres;
+                info->primary_height = vinfo.yres;
+                info->primary_refresh_rate = 0;
             }
+            close(fb);
         }
     }
-
-    XRRFreeScreenResources(res);
-    XCloseDisplay(dpy);
 
 #else
     return -2; // unsupported platform

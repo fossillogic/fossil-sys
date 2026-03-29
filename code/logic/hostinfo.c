@@ -1604,8 +1604,6 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
 
 #elif defined(__APPLE__)
     uint32_t display_count = 0;
-    CGDirectDisplayID *displays = NULL;
-
     CGGetActiveDisplayList(0, NULL, &display_count);
     if (display_count == 0)
         return -1;

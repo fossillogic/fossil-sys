@@ -31,22 +31,32 @@
 #endif
 #endif
 
-#include <stdio.h>
-#include <stdlib.h> // for getloadavg on Linux and general use
-#include <string.h>
-#include <stdint.h>
-#include <time.h>
-#include <errno.h>
+/* ============================================================================
+ * Platform-specific includes
+ * ============================================================================
+ */
 
+/* --- Windows platform --- */
 #ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
+
+// Core Windows headers
 #include <windows.h>
 #include <tchar.h>
 #include <sysinfoapi.h>
+
+// Networking (Winsock)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+
+// Graphics (DXGI)
+#include <dxgi.h>
+#include <initguid.h>
+
+/* --- Apple/macOS platform --- */
 #elif defined(__APPLE__)
-#define _DARWIN_C_SOURCE
+
+// POSIX and system info
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <sys/types.h>
@@ -54,13 +64,22 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <sys/sysctl.h>
 #include <mach/mach.h>
 #include <mach/mach_host.h>
 #include <mach/vm_statistics.h>
 #include <mach/vm_types.h>
+
+// Graphics and power info (IOKit, CoreFoundation, CoreGraphics)
+#include <IOKit/IOKitLib.h>
+#include <IOKit/ps/IOPowerSources.h>
+#include <IOKit/ps/IOPSKeys.h>
+#include <IOKit/graphics/IOGraphicsLib.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <CoreGraphics/CoreGraphics.h>
+
+/* --- Other Unix/Linux platforms --- */
 #else
-// Unix/Linux
+
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <sys/types.h>
@@ -77,25 +96,15 @@
 #include <linux/fb.h>
 #endif
 
-#ifdef _WIN32
-#include <windows.h>
-#include <dxgi.h> // DirectX Graphics Infrastructure
-#include <initguid.h>
-#elif defined(__APPLE__)
-#include <IOKit/IOKitLib.h>
-#include <IOKit/ps/IOPowerSources.h>
-#include <IOKit/ps/IOPSKeys.h>
-#include <IOKit/graphics/IOGraphicsLib.h>
-#include <CoreFoundation/CoreFoundation.h>
-#include <CoreGraphics/CoreGraphics.h>
-#endif
-
-#include <fcntl.h> // for open(), O_RDONLY
-#include <ctype.h> // for isspace()
+#include <stdint.h>
+#include <time.h>
+#include <fcntl.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h> // for setlocale and LC_ALL
+#include <locale.h>
+
 
 static void fossil_sys_zero(void *ptr, size_t size)
 {
@@ -1053,14 +1062,14 @@ int fossil_sys_hostinfo_get_memory(fossil_sys_hostinfo_memory_t *info)
     if (!GlobalMemoryStatusEx(&statex))
         return -1;
 
-    info->total_memory     = statex.ullTotalPhys;
-    info->free_memory      = statex.ullAvailPhys;
-    info->used_memory      = statex.ullTotalPhys - statex.ullAvailPhys;
+    info->total_memory = statex.ullTotalPhys;
+    info->free_memory = statex.ullAvailPhys;
+    info->used_memory = statex.ullTotalPhys - statex.ullAvailPhys;
     info->available_memory = statex.ullAvailPhys;
 
     info->total_swap = statex.ullTotalPageFile;
-    info->free_swap  = statex.ullAvailPageFile;
-    info->used_swap  = statex.ullTotalPageFile - statex.ullAvailPageFile;
+    info->free_swap = statex.ullAvailPageFile;
+    info->used_swap = statex.ullTotalPageFile - statex.ullAvailPageFile;
 
 #elif defined(__APPLE__)
     /* Total physical memory */
@@ -1069,45 +1078,45 @@ int fossil_sys_hostinfo_get_memory(fossil_sys_hostinfo_memory_t *info)
     if (sysctlbyname("hw.memsize", &memsize, &len, NULL, 0) != 0)
         return -1;
     info->total_memory = (uint64_t)memsize;
-    
+
     /* VM statistics for used/free/available */
     mach_port_t host = mach_host_self();
     vm_statistics64_data_t vmstat;
     mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
-    
+
     if (host_statistics64(host, HOST_VM_INFO64,
-                         (host_info64_t)&vmstat, &count) != KERN_SUCCESS)
+                          (host_info64_t)&vmstat, &count) != KERN_SUCCESS)
     {
         return -1;
     }
-    
+
     vm_size_t page_size;
     host_page_size(host, &page_size);
-    
+
     /* Convert pages → bytes */
-    uint64_t free_mem     = (uint64_t)vmstat.free_count     * page_size;
-    uint64_t active_mem   = (uint64_t)vmstat.active_count   * page_size;
+    uint64_t free_mem = (uint64_t)vmstat.free_count * page_size;
+    uint64_t active_mem = (uint64_t)vmstat.active_count * page_size;
     uint64_t inactive_mem = (uint64_t)vmstat.inactive_count * page_size;
-    uint64_t wired_mem    = (uint64_t)vmstat.wire_count     * page_size;
-    
-    info->free_memory      = free_mem;
+    uint64_t wired_mem = (uint64_t)vmstat.wire_count * page_size;
+
+    info->free_memory = free_mem;
     info->available_memory = free_mem + inactive_mem;
-    info->used_memory      = active_mem + wired_mem;
-    
+    info->used_memory = active_mem + wired_mem;
+
     /* Swap usage */
     struct xsw_usage swap;
     len = sizeof(swap);
     if (sysctlbyname("vm.swapusage", &swap, &len, NULL, 0) == 0)
     {
         info->total_swap = swap.xsu_total;
-        info->used_swap  = swap.xsu_used;
-        info->free_swap  = swap.xsu_avail;
+        info->used_swap = swap.xsu_used;
+        info->free_swap = swap.xsu_avail;
     }
     else
     {
         info->total_swap = 0;
-        info->used_swap  = 0;
-        info->free_swap  = 0;
+        info->used_swap = 0;
+        info->free_swap = 0;
     }
 
 #else
@@ -1116,14 +1125,14 @@ int fossil_sys_hostinfo_get_memory(fossil_sys_hostinfo_memory_t *info)
     if (sysinfo(&sys_info) != 0)
         return -1;
 
-    info->total_memory     = sys_info.totalram * sys_info.mem_unit;
-    info->free_memory      = sys_info.freeram * sys_info.mem_unit;
-    info->used_memory      = (sys_info.totalram - sys_info.freeram) * sys_info.mem_unit;
+    info->total_memory = sys_info.totalram * sys_info.mem_unit;
+    info->free_memory = sys_info.freeram * sys_info.mem_unit;
+    info->used_memory = (sys_info.totalram - sys_info.freeram) * sys_info.mem_unit;
     info->available_memory = sys_info.freeram * sys_info.mem_unit;
 
     info->total_swap = sys_info.totalswap * sys_info.mem_unit;
-    info->free_swap  = sys_info.freeswap * sys_info.mem_unit;
-    info->used_swap  = (sys_info.totalswap - sys_info.freeswap) * sys_info.mem_unit;
+    info->free_swap = sys_info.freeswap * sys_info.mem_unit;
+    info->used_swap = (sys_info.totalswap - sys_info.freeswap) * sys_info.mem_unit;
 #endif
 
     return 0;
@@ -1379,7 +1388,7 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
 #if defined(_WIN32)
     // Initialize Winsock
     WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
         return -1;
 
     // Hostname
@@ -1414,9 +1423,9 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
                 {
                     char mac[32];
                     snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-                        adapter->PhysicalAddress[0], adapter->PhysicalAddress[1],
-                        adapter->PhysicalAddress[2], adapter->PhysicalAddress[3],
-                        adapter->PhysicalAddress[4], adapter->PhysicalAddress[5]);
+                             adapter->PhysicalAddress[0], adapter->PhysicalAddress[1],
+                             adapter->PhysicalAddress[2], adapter->PhysicalAddress[3],
+                             adapter->PhysicalAddress[4], adapter->PhysicalAddress[5]);
                     fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), mac);
                 }
 
@@ -1441,7 +1450,8 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
         }
     }
 
-    if (adapters) free(adapters);
+    if (adapters)
+        free(adapters);
     WSACleanup();
     info->is_up = 1;
 
@@ -1790,7 +1800,7 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
 
     // Get primary display
     CGDirectDisplayID mainDisplay = CGMainDisplayID();
-    info->primary_width  = (int)CGDisplayPixelsWide(mainDisplay);
+    info->primary_width = (int)CGDisplayPixelsWide(mainDisplay);
     info->primary_height = (int)CGDisplayPixelsHigh(mainDisplay);
 
     // Refresh rate in Hz
@@ -1808,9 +1818,11 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
 #elif defined(__linux__)
     // Linux: Use framebuffer only, fully native, no libdrm/X11
     int fb = open("/dev/fb0", O_RDONLY);
-    if (fb >= 0) {
+    if (fb >= 0)
+    {
         struct fb_var_screeninfo vinfo;
-        if (ioctl(fb, FBIOGET_VSCREENINFO, &vinfo) == 0) {
+        if (ioctl(fb, FBIOGET_VSCREENINFO, &vinfo) == 0)
+        {
             info->display_count = 1;
             info->primary_width = vinfo.xres;
             info->primary_height = vinfo.yres;

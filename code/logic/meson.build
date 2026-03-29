@@ -12,17 +12,10 @@ if host_machine.system() == 'windows'
     winsock_dep = cc.find_library('ws2_32', required: true)
     bcrypt_dep  = cc.find_library('bcrypt', required: true)
     dxgi_dep    = cc.find_library('dxgi', required: true)   # <-- added DXGI
-    drm_dep     = []
 elif host_machine.system() == 'linux'
     winsock_dep = []
     bcrypt_dep  = []
     dxgi_dep    = []
-    drm_dep     = cc.find_library('drm', required: true)
-else
-    winsock_dep = []
-    bcrypt_dep  = []
-    dxgi_dep    = []
-    drm_dep     = []
 endif
 
 if host_machine.system() == 'darwin'
@@ -45,7 +38,7 @@ fossil_sys_lib = library('fossil_sys',
         'event.c',
         'env.c'),
     install: true,
-    dependencies: [libdl, winsock_dep, bcrypt_dep, dxgi_dep, iokit_dep, drm_dep, dependency('threads')],
+    dependencies: [libdl, winsock_dep, bcrypt_dep, dxgi_dep, iokit_dep, dependency('threads')],
     include_directories: dir)
 
 fossil_sys_dep = declare_dependency(

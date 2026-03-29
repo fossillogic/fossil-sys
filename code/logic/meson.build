@@ -13,7 +13,7 @@ fossil_sys_lib = library('fossil_sys',
         'event.c',
         'env.c'),
     install: true,
-    dependencies: [libdl, winsock_dep, bcrypt_dep, dxgi_dep, iokit_dep, dependency('threads')],
+    dependencies: [libdl, platform_deps, dependency('threads')],
     include_directories: dir)
 
 fossil_sys_dep = declare_dependency(

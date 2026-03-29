@@ -31,20 +31,32 @@
 #endif
 #endif
 
-#include <stdio.h>
-#include <stdlib.h> // for getloadavg on Linux and general use
-#include <string.h>
-#include <stdint.h>
-#include <time.h>
-#include <errno.h>
+/* ============================================================================
+ * Platform-specific includes
+ * ============================================================================
+ */
 
+/* --- Windows platform --- */
 #ifdef _WIN32
-#include <winsock2.h> // for inet_ntoa on Windows
+
+// Networking (Winsock)
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+
+// Core Windows headers
 #include <windows.h>
 #include <tchar.h>
 #include <sysinfoapi.h>
+
+// Graphics (DXGI)
+#include <dxgi.h>
+#include <initguid.h>
+
+/* --- Apple/macOS platform --- */
 #elif defined(__APPLE__)
-#define _DARWIN_C_SOURCE
+
+// POSIX and system info
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <sys/types.h>
@@ -52,8 +64,22 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <mach/mach.h>
+#include <mach/mach_host.h>
+#include <mach/vm_statistics.h>
+#include <mach/vm_types.h>
+
+// Graphics and power info (IOKit, CoreFoundation, CoreGraphics)
+#include <IOKit/IOKitLib.h>
+#include <IOKit/ps/IOPowerSources.h>
+#include <IOKit/ps/IOPSKeys.h>
+#include <IOKit/graphics/IOGraphicsLib.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <CoreGraphics/CoreGraphics.h>
+
+/* --- Other Unix/Linux platforms --- */
 #else
-// Unix/Linux
+
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <sys/types.h>
@@ -62,26 +88,23 @@
 #include <arpa/inet.h>
 #include <locale.h>
 #include <netdb.h>
+
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <linux/kd.h>
+#include <linux/fb.h>
 #endif
 
-#ifdef _WIN32
-#include <windows.h>
-#include <dxgi.h> // DirectX Graphics Infrastructure
-#include <initguid.h>
-#elif defined(__APPLE__)
-#include <IOKit/IOKitLib.h>
-#include <IOKit/ps/IOPowerSources.h>
-#include <IOKit/ps/IOPSKeys.h>
-#include <IOKit/graphics/IOGraphicsLib.h>
-#include <CoreFoundation/CoreFoundation.h>
-#endif
-
-#include <fcntl.h> // for open(), O_RDONLY
-#include <ctype.h> // for isspace()
+#include <stdint.h>
+#include <time.h>
+#include <fcntl.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h> // for setlocale and LC_ALL
+#include <locale.h>
+
 
 static void fossil_sys_zero(void *ptr, size_t size)
 {
@@ -1032,42 +1055,86 @@ int fossil_sys_hostinfo_get_memory(fossil_sys_hostinfo_memory_t *info)
 {
     if (!info)
         return -1;
+
 #ifdef _WIN32
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     if (!GlobalMemoryStatusEx(&statex))
         return -1;
+
     info->total_memory = statex.ullTotalPhys;
     info->free_memory = statex.ullAvailPhys;
     info->used_memory = statex.ullTotalPhys - statex.ullAvailPhys;
     info->available_memory = statex.ullAvailPhys;
+
     info->total_swap = statex.ullTotalPageFile;
     info->free_swap = statex.ullAvailPageFile;
     info->used_swap = statex.ullTotalPageFile - statex.ullAvailPageFile;
+
 #elif defined(__APPLE__)
-    int64_t memsize;
+    /* Total physical memory */
+    int64_t memsize = 0;
     size_t len = sizeof(memsize);
     if (sysctlbyname("hw.memsize", &memsize, &len, NULL, 0) != 0)
         return -1;
-    info->total_memory = memsize;
-    info->free_memory = 0; // macOS does not provide free memory info in the same way
-    info->used_memory = 0;
-    info->available_memory = 0;
-    info->total_swap = 0;
-    info->free_swap = 0;
-    info->used_swap = 0;
+    info->total_memory = (uint64_t)memsize;
+
+    /* VM statistics for used/free/available */
+    mach_port_t host = mach_host_self();
+    vm_statistics64_data_t vmstat;
+    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+
+    if (host_statistics64(host, HOST_VM_INFO64,
+                          (host_info64_t)&vmstat, &count) != KERN_SUCCESS)
+    {
+        return -1;
+    }
+
+    vm_size_t page_size;
+    host_page_size(host, &page_size);
+
+    /* Convert pages → bytes */
+    uint64_t free_mem = (uint64_t)vmstat.free_count * page_size;
+    uint64_t active_mem = (uint64_t)vmstat.active_count * page_size;
+    uint64_t inactive_mem = (uint64_t)vmstat.inactive_count * page_size;
+    uint64_t wired_mem = (uint64_t)vmstat.wire_count * page_size;
+
+    info->free_memory = free_mem;
+    info->available_memory = free_mem + inactive_mem;
+    info->used_memory = active_mem + wired_mem;
+
+    /* Swap usage */
+    struct xsw_usage swap;
+    len = sizeof(swap);
+    if (sysctlbyname("vm.swapusage", &swap, &len, NULL, 0) == 0)
+    {
+        info->total_swap = swap.xsu_total;
+        info->used_swap = swap.xsu_used;
+        info->free_swap = swap.xsu_avail;
+    }
+    else
+    {
+        info->total_swap = 0;
+        info->used_swap = 0;
+        info->free_swap = 0;
+    }
+
 #else
+    /* Linux / POSIX */
     struct sysinfo sys_info;
     if (sysinfo(&sys_info) != 0)
         return -1;
+
     info->total_memory = sys_info.totalram * sys_info.mem_unit;
     info->free_memory = sys_info.freeram * sys_info.mem_unit;
     info->used_memory = (sys_info.totalram - sys_info.freeram) * sys_info.mem_unit;
     info->available_memory = sys_info.freeram * sys_info.mem_unit;
+
     info->total_swap = sys_info.totalswap * sys_info.mem_unit;
     info->free_swap = sys_info.freeswap * sys_info.mem_unit;
     info->used_swap = (sys_info.totalswap - sys_info.freeswap) * sys_info.mem_unit;
 #endif
+
     return 0;
 }
 
@@ -1293,7 +1360,11 @@ int fossil_sys_hostinfo_get_virtualization(
                 if (strstr(buf, "KVM") ||
                     strstr(buf, "VMware") ||
                     strstr(buf, "VirtualBox") ||
-                    strstr(buf, "Hyper-V"))
+                    strstr(buf, "Hyper-V") ||
+                    strstr(buf, "QEMU") ||
+                    strstr(buf, "Bochs") ||
+                    strstr(buf, "Xen") ||
+                    strstr(buf, "Parallels"))
                 {
                     info->is_virtual_machine = 1;
                     fossil_sys_strcpy(info->hypervisor,
@@ -1315,39 +1386,209 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
     fossil_sys_zero(info, sizeof(*info));
 
 #if defined(_WIN32)
-    char hostname[128];
+    // Initialize Winsock
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        return -1;
+
+    // Hostname
+    char hostname[128] = {0};
     DWORD size = sizeof(hostname);
     if (GetComputerNameA(hostname, &size))
         fossil_sys_strcpy(info->hostname, sizeof(info->hostname), hostname);
     else
         fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
 
-    fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
-    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
-    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
+    // Network interfaces
+    IP_ADAPTER_ADDRESSES *adapters = NULL;
+    ULONG outBufLen = 0;
+    ULONG flags = GAA_FLAG_INCLUDE_PREFIX;
+
+    // First call to get buffer size
+    GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapters, &outBufLen);
+    adapters = (IP_ADAPTER_ADDRESSES *)malloc(outBufLen);
+    if (adapters && GetAdaptersAddresses(AF_UNSPEC, flags, NULL, adapters, &outBufLen) == NO_ERROR)
+    {
+        IP_ADAPTER_ADDRESSES *adapter = adapters;
+        while (adapter)
+        {
+            // Skip loopback and down interfaces
+            if (adapter->OperStatus == IfOperStatusUp && adapter->IfType != IF_TYPE_SOFTWARE_LOOPBACK)
+            {
+                // Primary interface name
+                fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), adapter->AdapterName);
+
+                // MAC address
+                if (adapter->PhysicalAddressLength > 0)
+                {
+                    char mac[32];
+                    snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+                             adapter->PhysicalAddress[0], adapter->PhysicalAddress[1],
+                             adapter->PhysicalAddress[2], adapter->PhysicalAddress[3],
+                             adapter->PhysicalAddress[4], adapter->PhysicalAddress[5]);
+                    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), mac);
+                }
+
+                // IPv4 address (first available)
+                IP_ADAPTER_UNICAST_ADDRESS *ua = adapter->FirstUnicastAddress;
+                while (ua)
+                {
+                    if (ua->Address.lpSockaddr->sa_family == AF_INET)
+                    {
+                        struct sockaddr_in *sa_in = (struct sockaddr_in *)ua->Address.lpSockaddr;
+                        const char *ip = inet_ntoa(sa_in->sin_addr);
+                        if (ip)
+                            fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
+                        break;
+                    }
+                    ua = ua->Next;
+                }
+
+                break; // Found first active interface
+            }
+            adapter = adapter->Next;
+        }
+    }
+
+    if (adapters)
+        free(adapters);
+    WSACleanup();
     info->is_up = 1;
 
-#elif defined(__APPLE__) || defined(__linux__)
+#elif defined(__APPLE__)
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <string.h>
+#include <net/if_dl.h>
+
+    // Hostname
     if (gethostname(info->hostname, sizeof(info->hostname)) != 0)
         fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
 
-    struct hostent *he = gethostbyname(info->hostname);
-    if (he && he->h_addrtype == AF_INET && he->h_length == 4 && he->h_addr_list[0])
+    // Primary IP: first non-loopback IPv4
+    struct ifaddrs *ifaddr, *ifa;
+    if (getifaddrs(&ifaddr) == 0)
     {
-        const char *ip = inet_ntoa(*(struct in_addr *)he->h_addr_list[0]);
-        if (ip)
-            fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
-        else
-            fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
+        for (ifa = ifaddr; ifa; ifa = ifa->ifa_next)
+        {
+            if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
+            {
+                struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+                const char *ip = inet_ntoa(sa->sin_addr);
+                if (ip)
+                    fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
+
+                if (ifa->ifa_name)
+                    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), ifa->ifa_name);
+
+                break;
+            }
+        }
+        freeifaddrs(ifaddr);
+    }
+
+    // Try to get MAC address using getifaddrs and SIOCGIFADDR
+    // On macOS, SIOCGIFADDR returns the MAC address for AF_LINK
+    struct ifaddrs *ifaddr2, *ifa2;
+    if (getifaddrs(&ifaddr2) == 0)
+    {
+        for (ifa2 = ifaddr2; ifa2; ifa2 = ifa2->ifa_next)
+        {
+            if (ifa2->ifa_addr && ifa2->ifa_addr->sa_family == AF_LINK &&
+                ifa2->ifa_name && strcmp(ifa2->ifa_name, info->interface_name) == 0)
+            {
+                struct sockaddr_dl *sdl = (struct sockaddr_dl *)ifa2->ifa_addr;
+                unsigned char *mac = (unsigned char *)LLADDR(sdl);
+                if (sdl->sdl_alen == 6)
+                {
+                    char mac_str[18];
+                    snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+                             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), mac_str);
+                    break;
+                }
+            }
+        }
+        if (info->mac_address[0] == '\0')
+            fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+        freeifaddrs(ifaddr2);
+    }
+    else
+    {
+        fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+    }
+    info->is_up = 1;
+
+#elif defined(__linux__)
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <linux/if.h>
+
+    // Hostname
+    if (gethostname(info->hostname, sizeof(info->hostname)) != 0)
+        fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
+
+    // Primary IP: first non-loopback IPv4
+    struct ifaddrs *ifaddr, *ifa;
+    if (getifaddrs(&ifaddr) == 0)
+    {
+        for (ifa = ifaddr; ifa; ifa = ifa->ifa_next)
+        {
+            if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET &&
+                !(ifa->ifa_flags & IFF_LOOPBACK))
+            {
+                struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+                const char *ip = inet_ntoa(sa->sin_addr);
+                if (ip)
+                    fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
+
+                if (ifa->ifa_name)
+                    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), ifa->ifa_name);
+
+                // Try to get MAC address
+                int fd = socket(AF_INET, SOCK_DGRAM, 0);
+                if (fd >= 0)
+                {
+                    struct ifreq ifr;
+                    memset(&ifr, 0, sizeof(ifr));
+                    strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ - 1);
+                    if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0)
+                    {
+                        unsigned char *mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+                        char mac_str[18];
+                        snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+                                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                        fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), mac_str);
+                    }
+                    else
+                    {
+                        fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+                    }
+                    close(fd);
+                }
+                else
+                {
+                    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+                }
+
+                break;
+            }
+        }
+        freeifaddrs(ifaddr);
     }
     else
     {
         fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
+        fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
+        fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
     }
-
-    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
-    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
     info->is_up = 1;
 
 #else
@@ -1531,21 +1772,67 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
 {
     if (!info)
         return -1;
+
     fossil_sys_zero(info, sizeof(*info));
 
 #if defined(_WIN32)
+    // Windows
     info->display_count = GetSystemMetrics(SM_CMONITORS);
     info->primary_width = GetSystemMetrics(SM_CXSCREEN);
     info->primary_height = GetSystemMetrics(SM_CYSCREEN);
-    info->primary_refresh_rate = 0;
 
-#elif defined(__APPLE__) || defined(__linux__)
-    info->display_count = 1;
-    info->primary_width = 0;
-    info->primary_height = 0;
-    info->primary_refresh_rate = 0;
+    // Attempt to get refresh rate of primary monitor
+    DEVMODE devmode;
+    memset(&devmode, 0, sizeof(devmode));
+    devmode.dmSize = sizeof(devmode);
+    if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode))
+        info->primary_refresh_rate = devmode.dmDisplayFrequency;
+    else
+        info->primary_refresh_rate = 0;
+
+#elif defined(__APPLE__)
+    uint32_t display_count = 0;
+    CGGetActiveDisplayList(0, NULL, &display_count);
+    if (display_count == 0)
+        return -1;
+
+    info->display_count = display_count;
+
+    // Get primary display
+    CGDirectDisplayID mainDisplay = CGMainDisplayID();
+    info->primary_width = (int)CGDisplayPixelsWide(mainDisplay);
+    info->primary_height = (int)CGDisplayPixelsHigh(mainDisplay);
+
+    // Refresh rate in Hz
+    CGDisplayModeRef mode = CGDisplayCopyDisplayMode(mainDisplay);
+    if (mode)
+    {
+        info->primary_refresh_rate = (int)CGDisplayModeGetRefreshRate(mode);
+        CGDisplayModeRelease(mode);
+    }
+    else
+    {
+        info->primary_refresh_rate = 0;
+    }
+
+#elif defined(__linux__)
+    // Linux: Use framebuffer only, fully native, no libdrm/X11
+    int fb = open("/dev/fb0", O_RDONLY);
+    if (fb >= 0)
+    {
+        struct fb_var_screeninfo vinfo;
+        if (ioctl(fb, FBIOGET_VSCREENINFO, &vinfo) == 0)
+        {
+            info->display_count = 1;
+            info->primary_width = vinfo.xres;
+            info->primary_height = vinfo.yres;
+            info->primary_refresh_rate = 0; // cannot detect refresh without DRM/Xrandr
+        }
+        close(fb);
+    }
+
 #else
-    return -2;
+    return -2; // unsupported platform
 #endif
 
     return 0;

@@ -17,7 +17,7 @@ elif host_machine.system() == 'linux'
     winsock_dep = []
     bcrypt_dep  = []
     dxgi_dep    = []
-    drm_dep     = dependency('libdrm', required: true)     # <-- add libdrm for Linux
+    drm_dep     = cc.find_library('drm', required: true)
 else
     winsock_dep = []
     bcrypt_dep  = []

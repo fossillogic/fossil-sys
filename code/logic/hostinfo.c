@@ -73,10 +73,6 @@
 #include <errno.h>
 #include <linux/kd.h>
 #include <linux/fb.h>
-#include <drm/drm_mode.h>
-#include <drm/drm.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 #endif
 
 #ifdef _WIN32
@@ -1635,47 +1631,17 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
     }
 
 #elif defined(__linux__)
-    int drm_fd = -1;
-    drmModeRes *resources = NULL;
-
-    drm_fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
-    if (drm_fd >= 0) {
-        resources = drmModeGetResources(drm_fd);
-        if (resources) {
-            info->display_count = resources->count_connectors;
-
-            for (int i = 0; i < resources->count_connectors; ++i) {
-                drmModeConnector *conn = drmModeGetConnector(drm_fd, resources->connectors[i]);
-                if (!conn) continue;
-
-                if (conn->connection == DRM_MODE_CONNECTED && conn->count_modes > 0) {
-                    // Use first connected mode as primary
-                    info->primary_width = conn->modes[0].hdisplay;
-                    info->primary_height = conn->modes[0].vdisplay;
-                    info->primary_refresh_rate = conn->modes[0].vrefresh;
-                    drmModeFreeConnector(conn);
-                    break;
-                }
-                drmModeFreeConnector(conn);
-            }
-            drmModeFreeResources(resources);
+    // Linux: Use framebuffer only, fully native, no libdrm/X11
+    int fb = open("/dev/fb0", O_RDONLY);
+    if (fb >= 0) {
+        struct fb_var_screeninfo vinfo;
+        if (ioctl(fb, FBIOGET_VSCREENINFO, &vinfo) == 0) {
+            info->display_count = 1;
+            info->primary_width = vinfo.xres;
+            info->primary_height = vinfo.yres;
+            info->primary_refresh_rate = 0; // cannot detect refresh without DRM/Xrandr
         }
-        close(drm_fd);
-    }
-
-    // Fallback to framebuffer if DRM fails
-    if (info->display_count == 0) {
-        int fb = open("/dev/fb0", O_RDONLY);
-        if (fb >= 0) {
-            struct fb_var_screeninfo vinfo;
-            if (ioctl(fb, FBIOGET_VSCREENINFO, &vinfo) == 0) {
-                info->display_count = 1;
-                info->primary_width = vinfo.xres;
-                info->primary_height = vinfo.yres;
-                info->primary_refresh_rate = 0;
-            }
-            close(fb);
-        }
+        close(fb);
     }
 
 #else

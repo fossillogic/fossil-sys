@@ -1451,6 +1451,7 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
 #include <netdb.h>
 #include <ifaddrs.h>
 #include <string.h>
+#include <net/if_dl.h>
 
     // Hostname
     if (gethostname(info->hostname, sizeof(info->hostname)) != 0)

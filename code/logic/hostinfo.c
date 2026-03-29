@@ -75,8 +75,6 @@
 #include <linux/fb.h>
 #include <drm/drm_mode.h>
 #include <drm/drm.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 #endif
 
 #ifdef _WIN32

@@ -1032,42 +1032,93 @@ int fossil_sys_hostinfo_get_memory(fossil_sys_hostinfo_memory_t *info)
 {
     if (!info)
         return -1;
+
 #ifdef _WIN32
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     if (!GlobalMemoryStatusEx(&statex))
         return -1;
-    info->total_memory = statex.ullTotalPhys;
-    info->free_memory = statex.ullAvailPhys;
-    info->used_memory = statex.ullTotalPhys - statex.ullAvailPhys;
+
+    info->total_memory     = statex.ullTotalPhys;
+    info->free_memory      = statex.ullAvailPhys;
+    info->used_memory      = statex.ullTotalPhys - statex.ullAvailPhys;
     info->available_memory = statex.ullAvailPhys;
+
     info->total_swap = statex.ullTotalPageFile;
-    info->free_swap = statex.ullAvailPageFile;
-    info->used_swap = statex.ullTotalPageFile - statex.ullAvailPageFile;
+    info->free_swap  = statex.ullAvailPageFile;
+    info->used_swap  = statex.ullTotalPageFile - statex.ullAvailPageFile;
+
 #elif defined(__APPLE__)
-    int64_t memsize;
+    #include <sys/sysctl.h>
+    #include <mach/mach.h>
+    #include <mach/mach_host.h>
+    #include <mach/vm_statistics.h>
+    #include <mach/vm_types.h>
+    #include <sys/types.h>
+    
+    /* Total physical memory */
+    int64_t memsize = 0;
     size_t len = sizeof(memsize);
     if (sysctlbyname("hw.memsize", &memsize, &len, NULL, 0) != 0)
         return -1;
-    info->total_memory = memsize;
-    info->free_memory = 0; // macOS does not provide free memory info in the same way
-    info->used_memory = 0;
-    info->available_memory = 0;
-    info->total_swap = 0;
-    info->free_swap = 0;
-    info->used_swap = 0;
+    info->total_memory = (uint64_t)memsize;
+    
+    /* VM statistics for used/free/available */
+    mach_port_t host = mach_host_self();
+    vm_statistics64_data_t vmstat;
+    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+    
+    if (host_statistics64(host, HOST_VM_INFO64,
+                         (host_info64_t)&vmstat, &count) != KERN_SUCCESS)
+    {
+        return -1;
+    }
+    
+    vm_size_t page_size;
+    host_page_size(host, &page_size);
+    
+    /* Convert pages → bytes */
+    uint64_t free_mem     = (uint64_t)vmstat.free_count     * page_size;
+    uint64_t active_mem   = (uint64_t)vmstat.active_count   * page_size;
+    uint64_t inactive_mem = (uint64_t)vmstat.inactive_count * page_size;
+    uint64_t wired_mem    = (uint64_t)vmstat.wire_count     * page_size;
+    
+    info->free_memory      = free_mem;
+    info->available_memory = free_mem + inactive_mem;
+    info->used_memory      = active_mem + wired_mem;
+    
+    /* Swap usage */
+    struct xsw_usage swap;
+    len = sizeof(swap);
+    if (sysctlbyname("vm.swapusage", &swap, &len, NULL, 0) == 0)
+    {
+        info->total_swap = swap.xsu_total;
+        info->used_swap  = swap.xsu_used;
+        info->free_swap  = swap.xsu_avail;
+    }
+    else
+    {
+        info->total_swap = 0;
+        info->used_swap  = 0;
+        info->free_swap  = 0;
+    }
+
 #else
+    /* Linux / POSIX */
     struct sysinfo sys_info;
     if (sysinfo(&sys_info) != 0)
         return -1;
-    info->total_memory = sys_info.totalram * sys_info.mem_unit;
-    info->free_memory = sys_info.freeram * sys_info.mem_unit;
-    info->used_memory = (sys_info.totalram - sys_info.freeram) * sys_info.mem_unit;
+
+    info->total_memory     = sys_info.totalram * sys_info.mem_unit;
+    info->free_memory      = sys_info.freeram * sys_info.mem_unit;
+    info->used_memory      = (sys_info.totalram - sys_info.freeram) * sys_info.mem_unit;
     info->available_memory = sys_info.freeram * sys_info.mem_unit;
+
     info->total_swap = sys_info.totalswap * sys_info.mem_unit;
-    info->free_swap = sys_info.freeswap * sys_info.mem_unit;
-    info->used_swap = (sys_info.totalswap - sys_info.freeswap) * sys_info.mem_unit;
+    info->free_swap  = sys_info.freeswap * sys_info.mem_unit;
+    info->used_swap  = (sys_info.totalswap - sys_info.freeswap) * sys_info.mem_unit;
 #endif
+
     return 0;
 }
 

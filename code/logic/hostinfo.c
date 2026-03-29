@@ -1351,7 +1351,11 @@ int fossil_sys_hostinfo_get_virtualization(
                 if (strstr(buf, "KVM") ||
                     strstr(buf, "VMware") ||
                     strstr(buf, "VirtualBox") ||
-                    strstr(buf, "Hyper-V"))
+                    strstr(buf, "Hyper-V") ||
+                    strstr(buf, "QEMU") ||
+                    strstr(buf, "Bochs") ||
+                    strstr(buf, "Xen") ||
+                    strstr(buf, "Parallels"))
                 {
                     info->is_virtual_machine = 1;
                     fossil_sys_strcpy(info->hypervisor,
@@ -1441,7 +1445,7 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
     WSACleanup();
     info->is_up = 1;
 
-#elif defined(__APPLE__) || defined(__linux__)
+#elif defined(__APPLE__)
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -1474,8 +1478,106 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
         freeifaddrs(ifaddr);
     }
 
-    // MAC address is not trivial without /sys or ioctl; leave Unknown
-    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+    // Try to get MAC address using getifaddrs and SIOCGIFADDR
+    // On macOS, SIOCGIFADDR returns the MAC address for AF_LINK
+    struct ifaddrs *ifaddr2, *ifa2;
+    if (getifaddrs(&ifaddr2) == 0)
+    {
+        for (ifa2 = ifaddr2; ifa2; ifa2 = ifa2->ifa_next)
+        {
+            if (ifa2->ifa_addr && ifa2->ifa_addr->sa_family == AF_LINK &&
+                ifa2->ifa_name && strcmp(ifa2->ifa_name, info->interface_name) == 0)
+            {
+                struct sockaddr_dl *sdl = (struct sockaddr_dl *)ifa2->ifa_addr;
+                unsigned char *mac = (unsigned char *)LLADDR(sdl);
+                if (sdl->sdl_alen == 6)
+                {
+                    char mac_str[18];
+                    snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+                             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), mac_str);
+                    break;
+                }
+            }
+        }
+        if (info->mac_address[0] == '\0')
+            fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+        freeifaddrs(ifaddr2);
+    }
+    else
+    {
+        fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+    }
+    info->is_up = 1;
+
+#elif defined(__linux__)
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <unistd.h>
+
+    // Hostname
+    if (gethostname(info->hostname, sizeof(info->hostname)) != 0)
+        fossil_sys_strcpy(info->hostname, sizeof(info->hostname), "Unknown");
+
+    // Primary IP: first non-loopback IPv4
+    struct ifaddrs *ifaddr, *ifa;
+    if (getifaddrs(&ifaddr) == 0)
+    {
+        for (ifa = ifaddr; ifa; ifa = ifa->ifa_next)
+        {
+            if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET &&
+                !(ifa->ifa_flags & IFF_LOOPBACK))
+            {
+                struct sockaddr_in *sa = (struct sockaddr_in *)ifa->ifa_addr;
+                const char *ip = inet_ntoa(sa->sin_addr);
+                if (ip)
+                    fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), ip);
+
+                if (ifa->ifa_name)
+                    fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), ifa->ifa_name);
+
+                // Try to get MAC address
+                int fd = socket(AF_INET, SOCK_DGRAM, 0);
+                if (fd >= 0)
+                {
+                    struct ifreq ifr;
+                    memset(&ifr, 0, sizeof(ifr));
+                    strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ - 1);
+                    if (ioctl(fd, SIOCGIFHWADDR, &ifr) == 0)
+                    {
+                        unsigned char *mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
+                        char mac_str[18];
+                        snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+                                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                        fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), mac_str);
+                    }
+                    else
+                    {
+                        fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+                    }
+                    close(fd);
+                }
+                else
+                {
+                    fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+                }
+
+                break;
+            }
+        }
+        freeifaddrs(ifaddr);
+    }
+    else
+    {
+        fossil_sys_strcpy(info->primary_ip, sizeof(info->primary_ip), "Unknown");
+        fossil_sys_strcpy(info->interface_name, sizeof(info->interface_name), "Unknown");
+        fossil_sys_strcpy(info->mac_address, sizeof(info->mac_address), "Unknown");
+    }
     info->is_up = 1;
 
 #else

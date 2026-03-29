@@ -22,7 +22,7 @@ if host_machine.system() == 'darwin'
     winsock_dep = []
     bcrypt_dep  = []
     dxgi_dep    = []
-    iokit_dep = dependency('appleframeworks', modules: ['IOKit', 'Foundation'])
+    iokit_dep = dependency('appleframeworks', modules: ['IOKit', 'CoreGraphics', 'Foundation'])
 else
     iokit_dep = []
 endif

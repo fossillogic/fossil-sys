@@ -1580,21 +1580,98 @@ int fossil_sys_hostinfo_get_display(fossil_sys_hostinfo_display_t *info)
 {
     if (!info)
         return -1;
+
     fossil_sys_zero(info, sizeof(*info));
 
 #if defined(_WIN32)
+    // Windows
     info->display_count = GetSystemMetrics(SM_CMONITORS);
     info->primary_width = GetSystemMetrics(SM_CXSCREEN);
     info->primary_height = GetSystemMetrics(SM_CYSCREEN);
-    info->primary_refresh_rate = 0;
 
-#elif defined(__APPLE__) || defined(__linux__)
-    info->display_count = 1;
-    info->primary_width = 0;
-    info->primary_height = 0;
-    info->primary_refresh_rate = 0;
+    // Attempt to get refresh rate of primary monitor
+    DEVMODE devmode;
+    memset(&devmode, 0, sizeof(devmode));
+    devmode.dmSize = sizeof(devmode);
+    if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devmode))
+        info->primary_refresh_rate = devmode.dmDisplayFrequency;
+    else
+        info->primary_refresh_rate = 0;
+
+#elif defined(__APPLE__)
+    #include <CoreGraphics/CoreGraphics.h>
+
+    uint32_t display_count = 0;
+    CGDirectDisplayID *displays = NULL;
+
+    CGGetActiveDisplayList(0, NULL, &display_count);
+    if (display_count == 0)
+        return -1;
+
+    info->display_count = display_count;
+
+    // Get primary display
+    CGDirectDisplayID mainDisplay = CGMainDisplayID();
+    info->primary_width  = (int)CGDisplayPixelsWide(mainDisplay);
+    info->primary_height = (int)CGDisplayPixelsHigh(mainDisplay);
+
+    // Refresh rate in Hz
+    CGDisplayModeRef mode = CGDisplayCopyDisplayMode(mainDisplay);
+    if (mode)
+    {
+        info->primary_refresh_rate = (int)CGDisplayModeGetRefreshRate(mode);
+        CGDisplayModeRelease(mode);
+    }
+    else
+    {
+        info->primary_refresh_rate = 0;
+    }
+
+#elif defined(__linux__)
+    // Linux: use X11 if available
+    #include <X11/Xlib.h>
+    #include <X11/extensions/Xrandr.h>
+
+    Display *dpy = XOpenDisplay(NULL);
+    if (!dpy)
+        return -1;
+
+    Window root = DefaultRootWindow(dpy);
+    XRRScreenResources *res = XRRGetScreenResources(dpy, root);
+    if (!res)
+    {
+        XCloseDisplay(dpy);
+        return -1;
+    }
+
+    info->display_count = res->noutput;
+
+    if (res->noutput > 0)
+    {
+        RROutput primary = XRRGetOutputPrimary(dpy, root);
+        if (primary)
+        {
+            XRROutputInfo *oInfo = XRRGetOutputInfo(dpy, res, primary);
+            if (oInfo && oInfo->connection == RR_Connected)
+            {
+                XRRCrtcInfo *cInfo = XRRGetCrtcInfo(dpy, res, oInfo->crtc);
+                if (cInfo)
+                {
+                    info->primary_width  = cInfo->width;
+                    info->primary_height = cInfo->height;
+                    info->primary_refresh_rate = cInfo->mode ? (int)(cInfo->rotation) : 0; // best effort
+                    XRRFreeCrtcInfo(cInfo);
+                }
+                XRRFreeOutputInfo(oInfo);
+            }
+        }
+    }
+
+    XRRFreeScreenResources(res);
+    XCloseDisplay(dpy);
+
 #else
-    return -2;
+    return -2; // unsupported platform
 #endif
 
     return 0;

@@ -1518,8 +1518,8 @@ int fossil_sys_hostinfo_get_network(fossil_sys_hostinfo_network_t *info)
 #include <ifaddrs.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <net/if.h>
 #include <unistd.h>
+#include <linux/if.h>
 
     // Hostname
     if (gethostname(info->hostname, sizeof(info->hostname)) != 0)

@@ -28,3 +28,5 @@ endif
 if host_machine.system() == 'linux'
     platform_deps += []
 endif
+
+platform_deps += libdl

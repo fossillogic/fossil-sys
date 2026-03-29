@@ -13,12 +13,11 @@ fossil_sys_lib = library('fossil_sys',
         'event.c',
         'env.c'),
     install: true,
-    dependencies: [libdl, platform_deps, dependency('threads')],
+    dependencies: [platform_deps, dependency('threads')],
     include_directories: dir)
 
 fossil_sys_dep = declare_dependency(
     link_with: [fossil_sys_lib],
-    dependencies: [dependency('threads')],
     include_directories: dir)
 
 meson.override_dependency('fossil-sys', fossil_sys_dep)

@@ -39,15 +39,15 @@
 /* --- Windows platform --- */
 #ifdef _WIN32
 
-// Core Windows headers
-#include <windows.h>
-#include <tchar.h>
-#include <sysinfoapi.h>
-
 // Networking (Winsock)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
+
+// Core Windows headers
+#include <windows.h>
+#include <tchar.h>
+#include <sysinfoapi.h>
 
 // Graphics (DXGI)
 #include <dxgi.h>

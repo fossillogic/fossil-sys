@@ -52,6 +52,11 @@
 #include <sys/time.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/sysctl.h>
+#include <mach/mach.h>
+#include <mach/mach_host.h>
+#include <mach/vm_statistics.h>
+#include <mach/vm_types.h>
 #else
 // Unix/Linux
 #include <unistd.h>
@@ -1049,13 +1054,6 @@ int fossil_sys_hostinfo_get_memory(fossil_sys_hostinfo_memory_t *info)
     info->used_swap  = statex.ullTotalPageFile - statex.ullAvailPageFile;
 
 #elif defined(__APPLE__)
-    #include <sys/sysctl.h>
-    #include <mach/mach.h>
-    #include <mach/mach_host.h>
-    #include <mach/vm_statistics.h>
-    #include <mach/vm_types.h>
-    #include <sys/types.h>
-    
     /* Total physical memory */
     int64_t memsize = 0;
     size_t len = sizeof(memsize);

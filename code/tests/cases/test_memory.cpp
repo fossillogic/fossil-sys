@@ -17,12 +17,12 @@
  * under the License.
  *
  * Author: Michael Gene Brockus (Dreamer)
- * Date: 04/05/2014
+ * Date: 04/05/2013
  *
- * Copyright (C) 2014-2025 Fossil Logic. All rights reserved.
+ * Copyright (C) 2013-Current Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 
 #include "fossil/sys/framework.h"
 
@@ -453,33 +453,33 @@ FOSSIL_TEST(cpp_test_memory_class_strdup)
 
 FOSSIL_TEST_GROUP(cpp_memory_tests)
 {
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_alloc);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_realloc);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_dup);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_zero);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_compare);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_move);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_resize);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_is_valid);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_calloc);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_init);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_alloc);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_realloc);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_calloc);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_init);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_copy);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_set);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_dup);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_zero);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_compare);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_move);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_resize);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_is_valid);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_fill);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_secure_zero);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_swap);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_find);
-    FOSSIL_TEST_ADD(cpp_memory_suite, cpp_test_memory_class_strdup);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_alloc);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_realloc);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_dup);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_zero);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_compare);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_move);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_resize);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_is_valid);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_calloc);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_init);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_alloc);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_realloc);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_calloc);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_init);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_copy);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_set);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_dup);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_zero);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_compare);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_move);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_resize);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_is_valid);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_fill);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_secure_zero);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_swap);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_find);
+    FOSSIL_ADD_TEST(cpp_memory_suite, cpp_test_memory_class_strdup);
 
-    FOSSIL_TEST_REGISTER(cpp_memory_suite);
+    FOSSIL_ADD_SUITE(cpp_memory_suite);
 }

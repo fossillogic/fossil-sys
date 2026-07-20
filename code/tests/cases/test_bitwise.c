@@ -11,7 +11,7 @@
  * Copyright (C) 2024 Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 
 #include "fossil/sys/framework.h"
 
@@ -196,14 +196,14 @@ FOSSIL_TEST(c_test_bitwise_has)
 // * * * * * * * * * * * * * * * * * * * * * * * *
 FOSSIL_TEST_GROUP(c_bitwise_tests)
 {
-    FOSSIL_TEST_ADD(c_bitwise_suite, c_test_bitwise_parse);
-    FOSSIL_TEST_ADD(c_bitwise_suite, c_test_bitwise_format);
-    FOSSIL_TEST_ADD(c_bitwise_suite, c_test_bitwise_lookup);
-    FOSSIL_TEST_ADD(c_bitwise_suite, c_test_bitwise_all);
-    FOSSIL_TEST_ADD(c_bitwise_suite, c_test_bitwise_validate);
-    FOSSIL_TEST_ADD(c_bitwise_suite, c_test_bitwise_name);
-    FOSSIL_TEST_ADD(c_bitwise_suite, c_test_bitwise_count);
-    FOSSIL_TEST_ADD(c_bitwise_suite, c_test_bitwise_has);
+    FOSSIL_ADD_TEST(c_bitwise_suite, c_test_bitwise_parse);
+    FOSSIL_ADD_TEST(c_bitwise_suite, c_test_bitwise_format);
+    FOSSIL_ADD_TEST(c_bitwise_suite, c_test_bitwise_lookup);
+    FOSSIL_ADD_TEST(c_bitwise_suite, c_test_bitwise_all);
+    FOSSIL_ADD_TEST(c_bitwise_suite, c_test_bitwise_validate);
+    FOSSIL_ADD_TEST(c_bitwise_suite, c_test_bitwise_name);
+    FOSSIL_ADD_TEST(c_bitwise_suite, c_test_bitwise_count);
+    FOSSIL_ADD_TEST(c_bitwise_suite, c_test_bitwise_has);
 
-    FOSSIL_TEST_REGISTER(c_bitwise_suite);
+    FOSSIL_ADD_SUITE(c_bitwise_suite);
 }

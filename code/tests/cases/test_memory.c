@@ -17,12 +17,12 @@
  * under the License.
  *
  * Author: Michael Gene Brockus (Dreamer)
- * Date: 04/05/2014
+ * Date: 04/05/2013
  *
- * Copyright (C) 2014-2025 Fossil Logic. All rights reserved.
+ * Copyright (C) 2013-Current Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 
 #include "fossil/sys/framework.h"
 
@@ -258,21 +258,21 @@ FOSSIL_TEST(c_test_memory_strdup)
 
 FOSSIL_TEST_GROUP(c_memory_tests)
 {
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_alloc);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_realloc);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_dup);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_zero);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_compare);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_move);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_resize);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_is_valid);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_calloc);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_init);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_fill_pattern);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_secure_zero);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_swap);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_find);
-    FOSSIL_TEST_ADD(c_memory_suite, c_test_memory_strdup);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_alloc);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_realloc);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_dup);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_zero);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_compare);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_move);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_resize);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_is_valid);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_calloc);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_init);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_fill_pattern);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_secure_zero);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_swap);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_find);
+    FOSSIL_ADD_TEST(c_memory_suite, c_test_memory_strdup);
 
-    FOSSIL_TEST_REGISTER(c_memory_suite);
+    FOSSIL_ADD_SUITE(c_memory_suite);
 }

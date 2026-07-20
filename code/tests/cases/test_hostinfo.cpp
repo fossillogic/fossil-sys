@@ -17,12 +17,12 @@
  * under the License.
  *
  * Author: Michael Gene Brockus (Dreamer)
- * Date: 04/05/2014
+ * Date: 04/05/2013
  *
- * Copyright (C) 2014-2025 Fossil Logic. All rights reserved.
+ * Copyright (C) 2013-Current Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 
 #include "fossil/sys/framework.h"
 
@@ -206,20 +206,20 @@ FOSSIL_TEST(cpp_test_hostinfo_get_display)
 
 FOSSIL_TEST_GROUP(cpp_hostinfo_tests)
 {
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_system);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_memory);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_architecture);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_endianness);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_storage);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_environment);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_cpu);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_gpu);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_power);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_network);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_process);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_time);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_hardware);
-    FOSSIL_TEST_ADD(cpp_hostinfo_suite, cpp_test_hostinfo_get_display);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_system);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_memory);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_architecture);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_endianness);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_storage);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_environment);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_cpu);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_gpu);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_power);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_network);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_process);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_time);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_hardware);
+    FOSSIL_ADD_TEST(cpp_hostinfo_suite, cpp_test_hostinfo_get_display);
 
-    FOSSIL_TEST_REGISTER(cpp_hostinfo_suite);
+    FOSSIL_ADD_SUITE(cpp_hostinfo_suite);
 }

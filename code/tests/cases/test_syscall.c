@@ -17,12 +17,12 @@
  * under the License.
  *
  * Author: Michael Gene Brockus (Dreamer)
- * Date: 04/05/2014
+ * Date: 04/05/2013
  *
- * Copyright (C) 2014-2025 Fossil Logic. All rights reserved.
+ * Copyright (C) 2013-Current Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 
 #include "fossil/sys/framework.h"
 
@@ -162,16 +162,16 @@ FOSSIL_TEST(c_test_sys_call_execute_capture)
 
 FOSSIL_TEST_GROUP(c_syscall_tests)
 {
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_execute);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_getpid);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_create_file);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_delete_file);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_file_exists);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_create_directory);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_delete_directory_non_recursive);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_delete_directory_recursive);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_getcwd_and_chdir);
-    FOSSIL_TEST_ADD(c_syscall_suite, c_test_sys_call_execute_capture);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_execute);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_getpid);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_create_file);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_delete_file);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_file_exists);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_create_directory);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_delete_directory_non_recursive);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_delete_directory_recursive);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_getcwd_and_chdir);
+    FOSSIL_ADD_TEST(c_syscall_suite, c_test_sys_call_execute_capture);
 
-    FOSSIL_TEST_REGISTER(c_syscall_suite);
+    FOSSIL_ADD_SUITE(c_syscall_suite);
 }

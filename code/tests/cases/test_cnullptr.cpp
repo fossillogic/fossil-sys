@@ -17,12 +17,12 @@
  * under the License.
  *
  * Author: Michael Gene Brockus (Dreamer)
- * Date: 04/05/2014
+ * Date: 04/05/2013
  *
- * Copyright (C) 2014-2025 Fossil Logic. All rights reserved.
+ * Copyright (C) 2013-Current Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 #include "fossil/sys/framework.h"
 
 #ifndef cnull
@@ -165,22 +165,22 @@ FOSSIL_TEST(cpp_test_cdrop)
 
 FOSSIL_TEST_GROUP(cpp_nullptr_tests)
 {
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_csafe_cast);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cnullify);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cnotnull);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cunwrap_or);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cunwrap);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_nullable_nonnull);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_coptional);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cunwrap_option);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cunwrap_or_option);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cdrop);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cnotnull);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_nullable_nonnull);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_coptional);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cunwrap_option);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cunwrap_or_option);
-    FOSSIL_TEST_ADD(cpp_null_suite, cpp_test_cdrop);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_csafe_cast);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cnullify);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cnotnull);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cunwrap_or);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cunwrap);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_nullable_nonnull);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_coptional);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cunwrap_option);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cunwrap_or_option);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cdrop);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cnotnull);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_nullable_nonnull);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_coptional);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cunwrap_option);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cunwrap_or_option);
+    FOSSIL_ADD_TEST(cpp_null_suite, cpp_test_cdrop);
 
-    FOSSIL_TEST_REGISTER(cpp_null_suite);
+    FOSSIL_ADD_SUITE(cpp_null_suite);
 }

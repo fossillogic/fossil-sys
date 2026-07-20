@@ -11,7 +11,7 @@
  * Copyright (C) 2024 Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 #include "fossil/sys/framework.h"
 
 using fossil::sys::Dynamic;
@@ -131,16 +131,16 @@ FOSSIL_TEST(cpp_test_dynamic_error)
 FOSSIL_TEST_GROUP(cpp_dynamic_tests)
 {
 
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_default_ctor);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_path_ctor_invalid);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_id_path_ctor_invalid);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_load_invalid);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_unload_not_loaded);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_symbol_unloaded);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_symbol_null_name);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_move_ctor);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_move_assign);
-    FOSSIL_TEST_ADD(cpp_dynamic_suite, cpp_test_dynamic_error);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_default_ctor);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_path_ctor_invalid);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_id_path_ctor_invalid);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_load_invalid);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_unload_not_loaded);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_symbol_unloaded);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_symbol_null_name);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_move_ctor);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_move_assign);
+    FOSSIL_ADD_TEST(cpp_dynamic_suite, cpp_test_dynamic_error);
 
-    FOSSIL_TEST_REGISTER(cpp_dynamic_suite);
+    FOSSIL_ADD_SUITE(cpp_dynamic_suite);
 }

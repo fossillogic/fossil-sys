@@ -11,7 +11,7 @@
  * Copyright (C) 2024 Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 
 #include "fossil/sys/framework.h"
 
@@ -160,17 +160,17 @@ FOSSIL_TEST(c_test_cdrop)
 // * * * * * * * * * * * * * * * * * * * * * * * *
 FOSSIL_TEST_GROUP(c_nullptr_tests)
 {
-    FOSSIL_TEST_ADD(c_null_suite, c_test_cnull_definition);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_cnullify);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_cnotnull);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_cunwrap_or);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_cunwrap);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_csafe_cast);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_nullable_nonnull);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_coptional);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_cunwrap_option);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_cunwrap_or_option);
-    FOSSIL_TEST_ADD(c_null_suite, c_test_cdrop);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_cnull_definition);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_cnullify);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_cnotnull);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_cunwrap_or);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_cunwrap);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_csafe_cast);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_nullable_nonnull);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_coptional);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_cunwrap_option);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_cunwrap_or_option);
+    FOSSIL_ADD_TEST(c_null_suite, c_test_cdrop);
 
-    FOSSIL_TEST_REGISTER(c_null_suite);
+    FOSSIL_ADD_SUITE(c_null_suite);
 }

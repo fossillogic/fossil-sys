@@ -11,7 +11,7 @@
  * Copyright (C) 2024 Fossil Logic. All rights reserved.
  * -----------------------------------------------------------------------------
  */
-#include <fossil/pizza/framework.h>
+#include <fossil/maip/framework.h>
 
 #include "fossil/sys/framework.h"
 
@@ -138,15 +138,15 @@ FOSSIL_TEST(c_test_dynamic_error)
 // * * * * * * * * * * * * * * * * * * * * * * * *
 FOSSIL_TEST_GROUP(c_dynamic_tests)
 {
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_load);
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_load_null);
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_unload);
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_unload_null);
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_symbol);
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_symbol_null);
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_is_loaded);
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_is_loaded_null);
-    FOSSIL_TEST_ADD(c_dynamic_suite, c_test_dynamic_error);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_load);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_load_null);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_unload);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_unload_null);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_symbol);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_symbol_null);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_is_loaded);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_is_loaded_null);
+    FOSSIL_ADD_TEST(c_dynamic_suite, c_test_dynamic_error);
 
-    FOSSIL_TEST_REGISTER(c_dynamic_suite);
+    FOSSIL_ADD_SUITE(c_dynamic_suite);
 }

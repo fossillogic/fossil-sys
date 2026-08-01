@@ -354,12 +354,12 @@ namespace fossil::sys
          *
          * Example:
          * @code
-         * uint64_t mask = Bitwise::OR(READ, WRITE);
+         * uint64_t mask = Bitwise::OPERATOR_OR(READ, WRITE);
          * // Or use the operator directly:
          * uint64_t mask = READ | WRITE;
          * @endcode
          */
-        static inline uint64_t OR(uint64_t lhs, uint64_t rhs)
+        static inline uint64_t OPERATOR_OR(uint64_t lhs, uint64_t rhs)
         {
             return lhs | rhs;
         }
@@ -369,12 +369,12 @@ namespace fossil::sys
          *
          * Example:
          * @code
-         * if (Bitwise::AND(mask, READ)) { ... }
+         * if (Bitwise::OPERATOR_AND(mask, READ)) { ... }
          * // Or use the operator directly:
          * if (mask & READ) { ... }
          * @endcode
          */
-        static inline uint64_t AND(uint64_t lhs, uint64_t rhs)
+        static inline uint64_t OPERATOR_AND(uint64_t lhs, uint64_t rhs)
         {
             return lhs & rhs;
         }
@@ -382,7 +382,7 @@ namespace fossil::sys
         /**
          * @brief Bitwise XOR operator for toggling flags.
          */
-        static inline uint64_t XOR(uint64_t lhs, uint64_t rhs)
+        static inline uint64_t OPERATOR_XOR(uint64_t lhs, uint64_t rhs)
         {
             return lhs ^ rhs;
         }
@@ -390,7 +390,7 @@ namespace fossil::sys
         /**
          * @brief Bitwise NOT operator for inverting a mask.
          */
-        static inline uint64_t NOT(uint64_t bits)
+        static inline uint64_t OPERATOR_NOT(uint64_t bits)
         {
             return ~bits;
         }

@@ -10,8 +10,6 @@ Fossil Sys is a versatile, cross-platform utilities library designed to provide 
 4. **High Performance**: Developed in C and C++ to maximize performance and resource efficiency, suitable for both desktop and embedded systems.
 5. **Extensive Documentation**: Offers comprehensive documentation and examples to help developers quickly understand and utilize the library.
 
-## Getting Started
-
 ## ***Prerequisites***
 
 To get started, ensure you have the following installed:
@@ -31,7 +29,7 @@ Add the `fossil-sys.wrap` file in your `subprojects` directory and include the f
 ```ini
 [wrap-git]
 url = https://github.com/fossillogic/fossil-sys.git
-revision = v1.0.0
+revision = v1.0.1
 
 [provide]
 dependency_names = fossil-sys

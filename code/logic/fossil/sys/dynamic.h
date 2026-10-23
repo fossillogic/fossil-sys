@@ -32,6 +32,8 @@ extern "C"
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
+
 
 /* ------------------------------------------------------
     * Platform abstraction

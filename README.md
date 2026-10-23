@@ -29,7 +29,7 @@ Add the `fossil-sys.wrap` file in your `subprojects` directory and include the f
 ```ini
 [wrap-git]
 url = https://github.com/fossillogic/fossil-sys.git
-revision = v1.0.1
+revision = v1.0.2
 
 [provide]
 dependency_names = fossil-sys

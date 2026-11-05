@@ -338,6 +338,48 @@ int fossil_sys_process_send_signal(uint32_t pid, int signal)
 #include <tlhelp32.h>
 #include <psapi.h>
 
+static int process_cmdline_add_size(size_t *size, size_t amount)
+{
+    /* CreateProcessA accepts command lines of at most 32767 characters. */
+    if (*size > 32766 || amount > 32766 - *size)
+        return -1;
+    *size += amount;
+    return 0;
+}
+
+static int process_cmdline_arg_size(const char *arg, size_t *size)
+{
+    size_t slashes = 0;
+    if (process_cmdline_add_size(size, 2) != 0) /* surrounding quotes */
+        return -1;
+
+    for (const char *p = arg; *p; ++p)
+    {
+        if (*p == '\\')
+        {
+            if (slashes == 32767)
+                return -1;
+            ++slashes;
+        }
+        else if (*p == '"')
+        {
+            if (slashes > 32766 / 2 || process_cmdline_add_size(size, slashes * 2 + 2) != 0)
+                return -1;
+            slashes = 0;
+        }
+        else
+        {
+            if (process_cmdline_add_size(size, slashes + 1) != 0)
+                return -1;
+            slashes = 0;
+        }
+    }
+
+    if (slashes > 32766 / 2 || process_cmdline_add_size(size, slashes * 2) != 0)
+        return -1;
+    return 0;
+}
+
 uint32_t fossil_sys_process_get_pid(void)
 {
     return (uint32_t)GetCurrentProcessId();
@@ -648,23 +690,63 @@ int fossil_sys_process_spawn(const char *path, char *const argv[], char *const e
     memset(&pi, 0, sizeof(pi));
     si.cb = sizeof(si);
 
-    // Build command line
-    char cmdline[1024] = {0};
+    // Quote each argument according to Windows command-line parsing rules.
+    char *cmdline = NULL;
+    size_t cmdline_len = 0;
     if (argv && argv[0])
     {
-        strncpy(cmdline, argv[0], sizeof(cmdline) - 1);
-        for (int i = 1; argv[i]; ++i)
+        for (size_t i = 0; argv[i]; ++i)
         {
-            strncat(cmdline, " ", sizeof(cmdline) - strlen(cmdline) - 1);
-            strncat(cmdline, argv[i], sizeof(cmdline) - strlen(cmdline) - 1);
+            if ((i && process_cmdline_add_size(&cmdline_len, 1) != 0) ||
+                process_cmdline_arg_size(argv[i], &cmdline_len) != 0)
+                return -1;
         }
+
+        cmdline = (char *)malloc(cmdline_len + 1);
+        if (!cmdline)
+            return -1;
+        size_t out = 0;
+        for (size_t i = 0; argv[i]; ++i)
+        {
+            if (i)
+                cmdline[out++] = ' ';
+            cmdline[out++] = '"';
+            size_t slashes = 0;
+            for (const char *p = argv[i]; *p; ++p)
+            {
+                if (*p == '\\')
+                    ++slashes;
+                else if (*p == '"')
+                {
+                    for (size_t j = 0; j < slashes * 2 + 1; ++j)
+                        cmdline[out++] = '\\';
+                    cmdline[out++] = '"';
+                    slashes = 0;
+                }
+                else
+                {
+                    for (size_t j = 0; j < slashes; ++j)
+                        cmdline[out++] = '\\';
+                    cmdline[out++] = *p;
+                    slashes = 0;
+                }
+            }
+            for (size_t j = 0; j < slashes * 2; ++j)
+                cmdline[out++] = '\\';
+            cmdline[out++] = '"';
+        }
+        cmdline[out] = '\0';
     }
 
     BOOL ok = CreateProcessA(
-        path, cmdline[0] ? cmdline : NULL, NULL, NULL, FALSE, 0,
+        path, cmdline, NULL, NULL, FALSE, 0,
         (LPVOID)envp, NULL, &si, &pi);
     if (!ok)
+    {
+        free(cmdline);
         return -1;
+    }
+    free(cmdline);
     if (pid_out)
         *pid_out = (uint32_t)pi.dwProcessId;
     CloseHandle(pi.hThread);

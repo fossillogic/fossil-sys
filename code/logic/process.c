@@ -366,7 +366,54 @@ int fossil_sys_process_get_info(uint32_t pid, fossil_sys_process_info_t *info)
         return -1;
     memset(info, 0, sizeof(*info));
     info->pid = pid;
-    // TODO: Fill more fields using Windows APIs if needed
+
+    if (fossil_sys_process_get_name(pid, info->name, sizeof(info->name)) != 0 ||
+        info->name[0] == '\0')
+    {
+        strncpy(info->name, "unknown", sizeof(info->name) - 1);
+        info->name[sizeof(info->name) - 1] = '\0';
+    }
+
+    // Parent PID
+    int ppid = fossil_sys_process_get_ppid(pid);
+    if (ppid > 0)
+        info->ppid = (uint32_t)ppid;
+
+    // Memory usage
+    HANDLE process = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+    if (process)
+    {
+        PROCESS_MEMORY_COUNTERS_EX counters;
+        memset(&counters, 0, sizeof(counters));
+        counters.cb = sizeof(counters);
+        if (GetProcessMemoryInfo(process, (PROCESS_MEMORY_COUNTERS *)&counters, sizeof(counters)))
+        {
+            info->memory_bytes = (uint64_t)counters.WorkingSetSize;
+            info->virtual_memory_bytes = (uint64_t)counters.PagefileUsage;
+        }
+        CloseHandle(process);
+    }
+
+    // Thread count
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (snapshot != INVALID_HANDLE_VALUE)
+    {
+        THREADENTRY32 entry;
+        memset(&entry, 0, sizeof(entry));
+        entry.dwSize = sizeof(entry);
+        if (Thread32First(snapshot, &entry))
+        {
+            do
+            {
+                if (entry.th32OwnerProcessID == pid)
+                    ++info->thread_count;
+            } while (Thread32Next(snapshot, &entry));
+        }
+        CloseHandle(snapshot);
+    }
+
+    // CPU usage placeholder
+    info->cpu_percent = 0.0f;
     return 0;
 }
 
@@ -482,47 +529,84 @@ int fossil_sys_process_get_environment(uint32_t pid, char *buffer, size_t buf_le
     PFN_NtQueryInformationProcess NtQueryInformationProcess = NULL;
     NtQueryInformationProcess = (PFN_NtQueryInformationProcess)(uintptr_t)GetProcAddress(ntdll, "NtQueryInformationProcess");
     if (!NtQueryInformationProcess)
-        return -3;
+        return -2;
 
     HANDLE hProc = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
     if (!hProc)
-        return -4;
+        return -2;
 
     PROCESS_BASIC_INFORMATION pbi;
     NTSTATUS status = NtQueryInformationProcess(hProc, ProcessBasicInformation, &pbi, sizeof(pbi), NULL);
     if (status != 0)
     {
         CloseHandle(hProc);
-        return -5;
+        return -2;
     }
 
     PEB peb;
     if (!ReadProcessMemory(hProc, pbi.PebBaseAddress, &peb, sizeof(peb), NULL))
     {
         CloseHandle(hProc);
-        return -6;
+        return -2;
     }
 
     RTL_USER_PROCESS_PARAMETERS_PARTIAL procParams;
     if (!ReadProcessMemory(hProc, peb.ProcessParameters, &procParams, sizeof(procParams), NULL))
     {
         CloseHandle(hProc);
-        return -7;
+        return -2;
     }
 
-    SIZE_T envBlockSize = 65536;
+    const SIZE_T envBlockSize = 1024 * 1024;
     WCHAR *envBlock = (WCHAR *)malloc(envBlockSize);
     if (!envBlock)
     {
         CloseHandle(hProc);
-        return -8;
+        return -2;
     }
 
-    if (!ReadProcessMemory(hProc, procParams.Environment, envBlock, envBlockSize, NULL))
+    SIZE_T bytesReadTotal = 0;
+    BOOL terminated = FALSE;
+    while (bytesReadTotal + sizeof(WCHAR) <= envBlockSize)
+    {
+        MEMORY_BASIC_INFORMATION mbi;
+        LPCVOID address = (LPCVOID)((const BYTE *)procParams.Environment + bytesReadTotal);
+        if (VirtualQueryEx(hProc, address, &mbi, sizeof(mbi)) == 0 ||
+            mbi.State != MEM_COMMIT || (mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)))
+            break;
+
+        uintptr_t region_end = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
+        SIZE_T region_bytes = (SIZE_T)(region_end - (uintptr_t)address);
+        SIZE_T remaining = envBlockSize - bytesReadTotal;
+        SIZE_T to_read = region_bytes < remaining ? region_bytes : remaining;
+        to_read -= to_read % sizeof(WCHAR);
+        if (to_read == 0)
+            break;
+
+        SIZE_T bytesRead = 0;
+        if (!ReadProcessMemory(hProc, address, (BYTE *)envBlock + bytesReadTotal, to_read, &bytesRead) ||
+            bytesRead == 0)
+            break;
+        bytesReadTotal += bytesRead;
+
+        size_t chars_read = bytesReadTotal / sizeof(WCHAR);
+        for (size_t i = 1; i < chars_read; ++i)
+        {
+            if (envBlock[i - 1] == L'\0' && envBlock[i] == L'\0')
+            {
+                terminated = TRUE;
+                break;
+            }
+        }
+        if (terminated)
+            break;
+    }
+
+    if (!terminated)
     {
         free(envBlock);
         CloseHandle(hProc);
-        return -9;
+        return -2;
     }
 
     int written = utf16_env_to_utf8(envBlock, buffer, buf_len);

@@ -408,7 +408,9 @@ int fossil_sys_process_get_info(uint32_t pid, fossil_sys_process_info_t *info)
         return -1;
     memset(info, 0, sizeof(*info));
     info->pid = pid;
-    // TODO: Fill more fields using Windows APIs if needed
+    if (fossil_sys_process_get_name(pid, info->name, sizeof(info->name)) != 0 ||
+        info->name[0] == '\0')
+        fossil_strlcpy(info->name, sizeof(info->name), "unknown");
     return 0;
 }
 
@@ -498,17 +500,9 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS_PARTIAL
 {
     BYTE Reserved1[16];
     PVOID Reserved2[10];
-#if defined(_WIN64)
     UNICODE_STRING ImagePathName;
     UNICODE_STRING CommandLine;
-    BYTE Reserved3[96];
     PVOID Environment;
-#else
-    UNICODE_STRING ImagePathName;
-    UNICODE_STRING CommandLine;
-    BYTE Reserved3[48];
-    PVOID Environment;
-#endif
 } RTL_USER_PROCESS_PARAMETERS_PARTIAL;
 
 int fossil_sys_process_get_environment(uint32_t pid, char *buffer, size_t buf_len)
@@ -552,22 +546,44 @@ int fossil_sys_process_get_environment(uint32_t pid, char *buffer, size_t buf_le
         return -7;
     }
 
-    SIZE_T envBlockSize = 65536;
-    WCHAR *envBlock = (WCHAR *)malloc(envBlockSize);
+    const SIZE_T maxEnvChars = 32768;
+    WCHAR *envBlock = (WCHAR *)malloc(maxEnvChars * sizeof(WCHAR));
     if (!envBlock)
     {
         CloseHandle(hProc);
         return -8;
     }
 
-    if (!ReadProcessMemory(hProc, procParams.Environment, envBlock, envBlockSize, NULL))
+    SIZE_T envChars = 0;
+    BOOL envRead = FALSE;
+    while (envChars < maxEnvChars)
     {
-        free(envBlock);
-        CloseHandle(hProc);
-        return -9;
+        SIZE_T charsToRead = maxEnvChars - envChars;
+        if (charsToRead > 256)
+            charsToRead = 256;
+        SIZE_T charsRead = 0;
+        if (!ReadProcessMemory(hProc,
+                               (const BYTE *)procParams.Environment + envChars * sizeof(WCHAR),
+                               envBlock + envChars,
+                               charsToRead * sizeof(WCHAR),
+                               &charsRead) || charsRead == 0)
+            break;
+
+        SIZE_T count = charsRead / sizeof(WCHAR);
+        for (SIZE_T i = 0; i < count; ++i)
+        {
+            ++envChars;
+            if (envChars >= 2 && envBlock[envChars - 1] == L'\0' && envBlock[envChars - 2] == L'\0')
+            {
+                envRead = TRUE;
+                break;
+            }
+        }
+        if (envRead || count < charsToRead)
+            break;
     }
 
-    int written = utf16_env_to_utf8(envBlock, buffer, buf_len);
+    int written = envRead ? utf16_env_to_utf8(envBlock, buffer, buf_len) : -2;
 
     free(envBlock);
     CloseHandle(hProc);

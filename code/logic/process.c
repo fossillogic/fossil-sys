@@ -77,6 +77,8 @@ int fossil_sys_process_get_name(uint32_t pid, char *name, size_t name_len)
     return 0;
 }
 
+static inline void fossil_strlcpy(char *dst, size_t size, const char *src);
+
 int fossil_sys_process_get_info(uint32_t pid, fossil_sys_process_info_t *info)
 {
     if (!info)

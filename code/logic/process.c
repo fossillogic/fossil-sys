@@ -77,8 +77,6 @@ int fossil_sys_process_get_name(uint32_t pid, char *name, size_t name_len)
     return 0;
 }
 
-static inline void fossil_strlcpy(char *dst, size_t size, const char *src);
-
 int fossil_sys_process_get_info(uint32_t pid, fossil_sys_process_info_t *info)
 {
     if (!info)
@@ -340,48 +338,6 @@ int fossil_sys_process_send_signal(uint32_t pid, int signal)
 #include <tlhelp32.h>
 #include <psapi.h>
 
-static int process_cmdline_add_size(size_t *size, size_t amount)
-{
-    /* CreateProcessA accepts command lines of at most 32767 characters. */
-    if (*size > 32766 || amount > 32766 - *size)
-        return -1;
-    *size += amount;
-    return 0;
-}
-
-static int process_cmdline_arg_size(const char *arg, size_t *size)
-{
-    size_t slashes = 0;
-    if (process_cmdline_add_size(size, 2) != 0) /* surrounding quotes */
-        return -1;
-
-    for (const char *p = arg; *p; ++p)
-    {
-        if (*p == '\\')
-        {
-            if (slashes == 32767)
-                return -1;
-            ++slashes;
-        }
-        else if (*p == '"')
-        {
-            if (slashes > 32766 / 2 || process_cmdline_add_size(size, slashes * 2 + 2) != 0)
-                return -1;
-            slashes = 0;
-        }
-        else
-        {
-            if (process_cmdline_add_size(size, slashes + 1) != 0)
-                return -1;
-            slashes = 0;
-        }
-    }
-
-    if (slashes > 32766 / 2 || process_cmdline_add_size(size, slashes * 2) != 0)
-        return -1;
-    return 0;
-}
-
 uint32_t fossil_sys_process_get_pid(void)
 {
     return (uint32_t)GetCurrentProcessId();
@@ -410,9 +366,7 @@ int fossil_sys_process_get_info(uint32_t pid, fossil_sys_process_info_t *info)
         return -1;
     memset(info, 0, sizeof(*info));
     info->pid = pid;
-    if (fossil_sys_process_get_name(pid, info->name, sizeof(info->name)) != 0 ||
-        info->name[0] == '\0')
-        fossil_strlcpy(info->name, sizeof(info->name), "unknown");
+    // TODO: Fill more fields using Windows APIs if needed
     return 0;
 }
 
@@ -502,9 +456,17 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS_PARTIAL
 {
     BYTE Reserved1[16];
     PVOID Reserved2[10];
+#if defined(_WIN64)
     UNICODE_STRING ImagePathName;
     UNICODE_STRING CommandLine;
+    BYTE Reserved3[96];
     PVOID Environment;
+#else
+    UNICODE_STRING ImagePathName;
+    UNICODE_STRING CommandLine;
+    BYTE Reserved3[48];
+    PVOID Environment;
+#endif
 } RTL_USER_PROCESS_PARAMETERS_PARTIAL;
 
 int fossil_sys_process_get_environment(uint32_t pid, char *buffer, size_t buf_len)
@@ -548,44 +510,22 @@ int fossil_sys_process_get_environment(uint32_t pid, char *buffer, size_t buf_le
         return -7;
     }
 
-    const SIZE_T maxEnvChars = 32768;
-    WCHAR *envBlock = (WCHAR *)malloc(maxEnvChars * sizeof(WCHAR));
+    SIZE_T envBlockSize = 65536;
+    WCHAR *envBlock = (WCHAR *)malloc(envBlockSize);
     if (!envBlock)
     {
         CloseHandle(hProc);
         return -8;
     }
 
-    SIZE_T envChars = 0;
-    BOOL envRead = FALSE;
-    while (envChars < maxEnvChars)
+    if (!ReadProcessMemory(hProc, procParams.Environment, envBlock, envBlockSize, NULL))
     {
-        SIZE_T charsToRead = maxEnvChars - envChars;
-        if (charsToRead > 256)
-            charsToRead = 256;
-        SIZE_T charsRead = 0;
-        if (!ReadProcessMemory(hProc,
-                               (const BYTE *)procParams.Environment + envChars * sizeof(WCHAR),
-                               envBlock + envChars,
-                               charsToRead * sizeof(WCHAR),
-                               &charsRead) || charsRead == 0)
-            break;
-
-        SIZE_T count = charsRead / sizeof(WCHAR);
-        for (SIZE_T i = 0; i < count; ++i)
-        {
-            ++envChars;
-            if (envChars >= 2 && envBlock[envChars - 1] == L'\0' && envBlock[envChars - 2] == L'\0')
-            {
-                envRead = TRUE;
-                break;
-            }
-        }
-        if (envRead || count < charsToRead)
-            break;
+        free(envBlock);
+        CloseHandle(hProc);
+        return -9;
     }
 
-    int written = envRead ? utf16_env_to_utf8(envBlock, buffer, buf_len) : -2;
+    int written = utf16_env_to_utf8(envBlock, buffer, buf_len);
 
     free(envBlock);
     CloseHandle(hProc);
@@ -700,6 +640,69 @@ int fossil_sys_process_wait(uint32_t pid, int *exit_code, int timeout_ms)
     return 0;
 }
 
+static int fossil_sys_quote_arg_size(const char *arg, size_t *size)
+{
+    size_t total = 2; /* Opening and closing quotes. */
+    size_t slashes = 0;
+    for (const char *p = arg; ; ++p)
+    {
+        if (*p == '\\')
+        {
+            ++slashes;
+            continue;
+        }
+
+        size_t add = slashes;
+        if (*p == '"')
+            add = slashes * 2 + 1;
+        else if (*p == '\0')
+            add = slashes * 2;
+        if (total > (size_t)-1 - add)
+            return -1;
+        total += add;
+        slashes = 0;
+        if (*p == '\0')
+            break;
+    }
+    *size = total;
+    return 0;
+}
+
+static char *fossil_sys_quote_arg(char *dst, const char *arg)
+{
+    size_t slashes = 0;
+    *dst++ = '"';
+    for (const char *p = arg; ; ++p)
+    {
+        if (*p == '\\')
+        {
+            ++slashes;
+            continue;
+        }
+        if (*p == '"')
+        {
+            for (size_t i = 0; i < slashes * 2 + 1; ++i)
+                *dst++ = '\\';
+            *dst++ = '"';
+        }
+        else if (*p == '\0')
+        {
+            for (size_t i = 0; i < slashes * 2; ++i)
+                *dst++ = '\\';
+            *dst++ = '"';
+            break;
+        }
+        else
+        {
+            for (size_t i = 0; i < slashes; ++i)
+                *dst++ = '\\';
+            *dst++ = *p;
+        }
+        slashes = 0;
+    }
+    return dst;
+}
+
 int fossil_sys_process_spawn(const char *path, char *const argv[], char *const envp[], uint32_t *pid_out)
 {
     STARTUPINFOA si;
@@ -708,52 +711,34 @@ int fossil_sys_process_spawn(const char *path, char *const argv[], char *const e
     memset(&pi, 0, sizeof(pi));
     si.cb = sizeof(si);
 
-    // Quote each argument according to Windows command-line parsing rules.
-    char *cmdline = NULL;
-    size_t cmdline_len = 0;
+    // Quote each argument using Windows CRT command-line parsing rules.
+    size_t cmdline_size = 1;
     if (argv && argv[0])
     {
         for (size_t i = 0; argv[i]; ++i)
         {
-            if ((i && process_cmdline_add_size(&cmdline_len, 1) != 0) ||
-                process_cmdline_arg_size(argv[i], &cmdline_len) != 0)
+            size_t arg_size;
+            if (fossil_sys_quote_arg_size(argv[i], &arg_size) != 0 ||
+                cmdline_size > (size_t)-1 - arg_size - (i != 0))
                 return -1;
+            cmdline_size += arg_size + (i != 0);
         }
+    }
 
-        cmdline = (char *)malloc(cmdline_len + 1);
+    char *cmdline = NULL;
+    if (argv && argv[0])
+    {
+        cmdline = (char *)malloc(cmdline_size);
         if (!cmdline)
             return -1;
-        size_t out = 0;
+        char *out = cmdline;
         for (size_t i = 0; argv[i]; ++i)
         {
-            if (i)
-                cmdline[out++] = ' ';
-            cmdline[out++] = '"';
-            size_t slashes = 0;
-            for (const char *p = argv[i]; *p; ++p)
-            {
-                if (*p == '\\')
-                    ++slashes;
-                else if (*p == '"')
-                {
-                    for (size_t j = 0; j < slashes * 2 + 1; ++j)
-                        cmdline[out++] = '\\';
-                    cmdline[out++] = '"';
-                    slashes = 0;
-                }
-                else
-                {
-                    for (size_t j = 0; j < slashes; ++j)
-                        cmdline[out++] = '\\';
-                    cmdline[out++] = *p;
-                    slashes = 0;
-                }
-            }
-            for (size_t j = 0; j < slashes * 2; ++j)
-                cmdline[out++] = '\\';
-            cmdline[out++] = '"';
+            if (i != 0)
+                *out++ = ' ';
+            out = fossil_sys_quote_arg(out, argv[i]);
         }
-        cmdline[out] = '\0';
+        *out = '\0';
     }
 
     BOOL ok = CreateProcessA(

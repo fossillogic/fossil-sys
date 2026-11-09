@@ -510,7 +510,6 @@ int fossil_sys_hostinfo_get_gpu(fossil_sys_hostinfo_gpu_t *info)
         char line[512];
         if (fgets(line, sizeof(line), fp))
         {
-            // Example: 00:02.0 "VGA compatible controller" "Intel Corporation" "HD Graphics 620" ...
             char *vendor = strchr(line, '"');
             if (vendor)
             {
@@ -1696,8 +1695,25 @@ int fossil_sys_hostinfo_get_time(fossil_sys_hostinfo_time_t *info)
     gmtime_r(&now, &utc_tm);
 #endif
 
+    int day_difference = local_tm.tm_yday - utc_tm.tm_yday;
+    if (local_tm.tm_year > utc_tm.tm_year)
+    {
+        int utc_year = utc_tm.tm_year + 1900;
+        day_difference += 365 + (utc_year % 4 == 0 &&
+                                  (utc_year % 100 != 0 || utc_year % 400 == 0));
+    }
+    else if (local_tm.tm_year < utc_tm.tm_year)
+    {
+        int local_year = local_tm.tm_year + 1900;
+        day_difference -= 365 + (local_year % 4 == 0 &&
+                                 (local_year % 100 != 0 || local_year % 400 == 0));
+    }
+
     info->utc_offset_seconds =
-        (local_tm.tm_hour - utc_tm.tm_hour) * 3600;
+        day_difference * 86400 +
+        (local_tm.tm_hour - utc_tm.tm_hour) * 3600 +
+        (local_tm.tm_min - utc_tm.tm_min) * 60 +
+        (local_tm.tm_sec - utc_tm.tm_sec);
 
     strftime(info->timezone, sizeof(info->timezone), "%Z", &local_tm);
 
@@ -1710,6 +1726,29 @@ int fossil_sys_hostinfo_get_time(fossil_sys_hostinfo_time_t *info)
     return 0;
 }
 
+static void fossil_sys_hostinfo_read_dmi_value(const char *path,
+                                               char *value,
+                                               size_t value_size)
+{
+    FILE *fp = fopen(path, "r");
+    if (!fp)
+    {
+        fossil_sys_strcpy(value, value_size, "Unknown");
+        return;
+    }
+
+    if (fgets(value, value_size, fp) == NULL)
+        value[0] = '\0';
+    fclose(fp);
+
+    size_t length = strlen(value);
+    while (length > 0 && (value[length - 1] == '\n' || value[length - 1] == '\r'))
+        value[--length] = '\0';
+
+    if (value[0] == '\0')
+        fossil_sys_strcpy(value, value_size, "Unknown");
+}
+
 int fossil_sys_hostinfo_get_hardware(fossil_sys_hostinfo_hardware_t *info)
 {
     if (!info)
@@ -1717,47 +1756,14 @@ int fossil_sys_hostinfo_get_hardware(fossil_sys_hostinfo_hardware_t *info)
     fossil_sys_zero(info, sizeof(*info));
 
 #if defined(__linux__)
-    FILE *fp;
-
-    fp = fopen("/sys/class/dmi/id/sys_vendor", "r");
-    if (fp)
-    {
-        if (fgets(info->manufacturer, sizeof(info->manufacturer), fp) == NULL)
-        {
-            info->manufacturer[0] = '\0';
-        }
-        fclose(fp);
-    }
-
-    fp = fopen("/sys/class/dmi/id/product_name", "r");
-    if (fp)
-    {
-        if (fgets(info->product_name, sizeof(info->product_name), fp) == NULL)
-        {
-            info->product_name[0] = '\0';
-        }
-        fclose(fp);
-    }
-
-    fp = fopen("/sys/class/dmi/id/product_serial", "r");
-    if (fp)
-    {
-        if (fgets(info->serial_number, sizeof(info->serial_number), fp) == NULL)
-        {
-            info->serial_number[0] = '\0';
-        }
-        fclose(fp);
-    }
-
-    fp = fopen("/sys/class/dmi/id/bios_version", "r");
-    if (fp)
-    {
-        if (fgets(info->bios_version, sizeof(info->bios_version), fp) == NULL)
-        {
-            info->bios_version[0] = '\0';
-        }
-        fclose(fp);
-    }
+    fossil_sys_hostinfo_read_dmi_value("/sys/class/dmi/id/sys_vendor",
+                                       info->manufacturer, sizeof(info->manufacturer));
+    fossil_sys_hostinfo_read_dmi_value("/sys/class/dmi/id/product_name",
+                                       info->product_name, sizeof(info->product_name));
+    fossil_sys_hostinfo_read_dmi_value("/sys/class/dmi/id/product_serial",
+                                       info->serial_number, sizeof(info->serial_number));
+    fossil_sys_hostinfo_read_dmi_value("/sys/class/dmi/id/bios_version",
+                                       info->bios_version, sizeof(info->bios_version));
 #else
     fossil_sys_strcpy(info->manufacturer, sizeof(info->manufacturer), "Unknown");
     fossil_sys_strcpy(info->product_name, sizeof(info->product_name), "Unknown");

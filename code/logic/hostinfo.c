@@ -1726,6 +1726,7 @@ int fossil_sys_hostinfo_get_time(fossil_sys_hostinfo_time_t *info)
     return 0;
 }
 
+#if defined(__linux__)
 static void fossil_sys_hostinfo_read_dmi_value(const char *path,
                                                char *value,
                                                size_t value_size)
@@ -1748,6 +1749,7 @@ static void fossil_sys_hostinfo_read_dmi_value(const char *path,
     if (value[0] == '\0')
         fossil_sys_strcpy(value, value_size, "Unknown");
 }
+#endif
 
 int fossil_sys_hostinfo_get_hardware(fossil_sys_hostinfo_hardware_t *info)
 {

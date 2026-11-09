@@ -26,10 +26,26 @@
 #include <stdlib.h> // Needed for posix_memalign
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <stddef.h>
 
 // Internal counters for memory stats (optional, for debug)
 static size_t g_alloc_count = 0;
 static size_t g_alloc_bytes = 0;
+
+typedef union fossil_sys_memory_header {
+    struct {
+        size_t size;
+    } allocation;
+    max_align_t alignment;
+} fossil_sys_memory_header_t;
+
+static void fossil_sys_memory_wipe(void *ptr, size_t size)
+{
+    volatile unsigned char *p = (volatile unsigned char *)ptr;
+    while (size--)
+        *p++ = 0;
+}
 
 // ----------------------- Aligned Memory -----------------------
 
@@ -41,13 +57,20 @@ fossil_sys_memory_t fossil_sys_memory_alloc(size_t size)
         return NULL;
     }
 
-    fossil_sys_memory_t ptr = malloc(size);
-    if (!ptr)
+    if (size > SIZE_MAX - sizeof(fossil_sys_memory_header_t))
+    {
+        fprintf(stderr, "Error: fossil_sys_memory_alloc() - Allocation size overflow.\n");
+        return NULL;
+    }
+
+    fossil_sys_memory_header_t *header = malloc(sizeof(*header) + size);
+    if (!header)
     {
         fprintf(stderr, "Error: fossil_sys_memory_alloc() - Memory allocation failed.\n");
         return NULL;
     }
-    return ptr;
+    header->allocation.size = size;
+    return (fossil_sys_memory_t)(header + 1);
 }
 
 fossil_sys_memory_t fossil_sys_memory_realloc(fossil_sys_memory_t ptr, size_t size)
@@ -58,13 +81,26 @@ fossil_sys_memory_t fossil_sys_memory_realloc(fossil_sys_memory_t ptr, size_t si
         return NULL;
     }
 
-    fossil_sys_memory_t new_ptr = realloc(ptr, size);
-    if (!new_ptr && size > 0)
+    if (size == 0)
+    {
+        fossil_sys_memory_free(ptr);
+        return NULL;
+    }
+    if (size > SIZE_MAX - sizeof(fossil_sys_memory_header_t))
+    {
+        fprintf(stderr, "Error: fossil_sys_memory_realloc() - Allocation size overflow.\n");
+        return NULL;
+    }
+
+    fossil_sys_memory_header_t *header = ((fossil_sys_memory_header_t *)ptr) - 1;
+    fossil_sys_memory_header_t *new_header = realloc(header, sizeof(*header) + size);
+    if (!new_header)
     {
         fprintf(stderr, "Error: fossil_sys_memory_realloc() - Memory reallocation failed.\n");
         return NULL;
     }
-    return new_ptr;
+    new_header->allocation.size = size;
+    return (fossil_sys_memory_t)(new_header + 1);
 }
 
 fossil_sys_memory_t fossil_sys_memory_calloc(size_t num, size_t size)
@@ -75,12 +111,27 @@ fossil_sys_memory_t fossil_sys_memory_calloc(size_t num, size_t size)
         return NULL;
     }
 
-    fossil_sys_memory_t ptr = calloc(num, size);
+    if (num > SIZE_MAX / size)
+    {
+        fprintf(stderr, "Error: fossil_sys_memory_calloc() - Allocation size overflow.\n");
+        return NULL;
+    }
+
+    size_t total_size = num * size;
+    if (total_size > SIZE_MAX - sizeof(fossil_sys_memory_header_t))
+    {
+        fprintf(stderr, "Error: fossil_sys_memory_calloc() - Allocation size overflow.\n");
+        return NULL;
+    }
+
+    fossil_sys_memory_header_t *header = calloc(1, sizeof(*header) + total_size);
+    fossil_sys_memory_t ptr = header ? (fossil_sys_memory_t)(header + 1) : NULL;
     if (!ptr)
     {
         fprintf(stderr, "Error: fossil_sys_memory_calloc() - Memory allocation failed.\n");
         return NULL;
     }
+    header->allocation.size = total_size;
     return ptr;
 }
 
@@ -108,7 +159,10 @@ void fossil_sys_memory_free(fossil_sys_memory_t ptr)
         fprintf(stderr, "Error: fossil_sys_memory_free() - Pointer is NULL.\n");
         return;
     }
-    free(ptr); // No need for NULL check, free() already handles NULL.
+    fossil_sys_memory_header_t *header = ((fossil_sys_memory_header_t *)ptr) - 1;
+    size_t allocation_size = header->allocation.size;
+    fossil_sys_memory_wipe(header, sizeof(*header) + allocation_size);
+    free(header);
 }
 
 fossil_sys_memory_t fossil_sys_memory_copy(fossil_sys_memory_t dest, const fossil_sys_memory_t src, size_t size)
@@ -209,8 +263,8 @@ fossil_sys_memory_t fossil_sys_memory_resize(fossil_sys_memory_t ptr, size_t old
         return NULL;
     }
 
-    // allocate new buffer
-    fossil_sys_memory_t new_ptr = malloc(new_size);
+    // Allocate a tracked buffer so freeing it securely wipes its contents.
+    fossil_sys_memory_t new_ptr = fossil_sys_memory_alloc(new_size);
     if (!new_ptr)
     {
         fprintf(stderr, "Error: fossil_sys_memory_resize() - Memory allocation failed.\n");
@@ -273,12 +327,8 @@ void fossil_sys_memory_secure_zero(fossil_sys_memory_t ptr, size_t size)
         return;
 #if defined(_MSC_VER)
     SecureZeroMemory(ptr, size);
-#elif defined(__GNUC__) || defined(__clang__)
-    volatile uint8_t *p = (volatile uint8_t *)ptr;
-    while (size--)
-        *p++ = 0;
 #else
-    memset(ptr, 0, size); // Fallback (not guaranteed secure)
+    fossil_sys_memory_wipe(ptr, size);
 #endif
 }
 
@@ -330,6 +380,8 @@ char *fossil_sys_memory_strdup(const char *str)
 
     size_t len = strlen(str) + 1;
     char *copy = (char *)fossil_sys_memory_alloc(len);
+    if (!copy)
+        return NULL;
     memcpy(copy, str, len);
     return copy;
 }

@@ -23,11 +23,21 @@
  * -----------------------------------------------------------------------------
  */
 #include "fossil/sys/bitwise.h"
-#include <string.h>
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+static void fossil_strlcpy(char *dst, const char *src, size_t dst_size)
+{
+    if (dst_size == 0)
+        return;
+    size_t src_len = strlen(src);
+    size_t copy_len = src_len < dst_size - 1 ? src_len : dst_size - 1;
+    memcpy(dst, src, copy_len);
+    dst[copy_len] = '\0';
+}
+
 
 uint64_t fossil_sys_bitwise_parse(const char *input, const fossil_sys_bitwise_table_t *table)
 {
@@ -38,7 +48,7 @@ uint64_t fossil_sys_bitwise_parse(const char *input, const fossil_sys_bitwise_ta
     {
         return 0; // Memory allocation failed
     }
-    strcpy(input_copy, input);
+    fossil_strlcpy(input_copy, input, input_len + 1);
     char *token = strtok(input_copy, "|");
     while (token != NULL)
     {
@@ -64,13 +74,14 @@ int fossil_sys_bitwise_format(uint64_t bits, const fossil_sys_bitwise_table_t *t
         if (bits & table->entries[i].bit)
         {
             size_t len = strlen(table->entries[i].name);
-            if (offset + len + 1 < out_size)
+            size_t separator_len = offset > 0 ? 1 : 0;
+            if (len + separator_len + 1 <= out_size - offset)
             {
                 if (offset > 0)
                 {
                     out[offset++] = '|';
                 }
-                strcpy(out + offset, table->entries[i].name);
+                fossil_strlcpy(out + offset, table->entries[i].name, out_size - offset);
                 offset += len;
             }
             else
